@@ -1,0 +1,169 @@
+# Circuit Breaker & Panel Wire Planner — Project Requirements Document
+
+## 1. Project Overview
+
+### 1.1 Summary
+The **Circuit Breaker & Panel Wire Planner** is a client-side web application designed to help electricians, electrical engineers, panel builders, and DIY enthusiasts visually lay out electrical distribution boards (consumer units / breaker panels) and plan the wiring interconnections between components.
+
+Users can define panel specifications (DIN rails, rows, and module widths), drag and drop modular DIN rail equipment, interactively route wires between terminals with proper phase color coding and gauges, and export complete panel schedules, bills of materials (BOM), and wiring diagrams.
+
+### 1.2 Target Audience
+- **Electricians & Panel Builders**: Planning distribution boards before assembly, generating wiring cut-lists and panel schedules.
+- **Solar & EV Installers**: Sizing and laying out combiner boxes and sub-panels.
+- **Home Lab / Automation Enthusiasts**: Planning smart relays (Shelly/Sonoff), DIN rail power supplies, and control panels.
+- **DIYers / Students**: Understanding consumer unit hierarchy and electrical safety.
+
+---
+
+## 2. Tech Stack & Architecture
+
+- **Framework**: [SvelteKit](https://kit.svelte.dev/) (using Svelte 5 runes for reactive state management).
+- **Hosting / Runtime**: [Cloudflare Workers](https://workers.cloudflare.com/) / Cloudflare Pages via `@sveltejs/adapter-cloudflare`.
+- **Styling**: Tailwind CSS + UI components (e.g., bits-ui / Lucide Icons).
+- **Canvas / Rendering Engine**: Interactive SVG (Scalable Vector Graphics) for crisp rendering, infinite zoom, responsive terminal hitboxes, and print-ready vector export.
+- **Data Persistence**:
+  - `localStorage` and `IndexedDB` for offline-first project autosave.
+  - JSON Schema-based file import/export.
+- **Offline Capabilities**: Full client-side functionality; works offline without server round-trips.
+
+---
+
+## 3. Functional Requirements
+
+### 3.1 Panel & DIN Rail Enclosure Setup
+1. **Enclosure Sizing**:
+   - Number of horizontal DIN rail tiers/rows (e.g., 1 to 6 rows).
+   - Module width per rail, measured in standard DIN units (**1 TE / Module = 18 mm**; typical panels range from 4 to 24 modules per row).
+   - Presets for common consumer units (e.g., 1-Row 8M/12M, 2-Row 24M, 3-Row 36M, 4-Row 48M, custom).
+2. **Wire Gutters & Accessories**:
+   - Configurable wiring gutters (top, bottom, and side duct spacing).
+   - Top/Bottom grounding (PE) and neutral (N) terminal brass busbar strips.
+   - Enclosure cover view toggle (shows cutout window and dead-front panel labels).
+
+### 3.2 Modular Component Library
+The application must provide a library of DIN rail-mountable devices with accurate module widths (TE) and terminal connection points.
+
+#### Built-in Device Types:
+| Category | Device Examples | Width (TE) | Typical Terminals |
+| :--- | :--- | :--- | :--- |
+| **Main Switches** | 2-Pole / 4-Pole Isolator (63A, 100A) | 2M / 4M | In: L1, L2, L3, N; Out: L1, L2, L3, N |
+| **RCD / RCCB** | 2-Pole / 4-Pole (30mA, 100mA, 300mA Type A/AC/B) | 2M / 4M | Line In, Neutral In, Line Out, Neutral Out |
+| **MCB** | 1-Pole, 2-Pole, 3-Pole (B, C, D curves; 6A–63A) | 1M, 2M, 3M | Top (Line In), Bottom (Line Out) |
+| **RCBO** | Compact 1-Pole+N (1M) or Standard 2-Pole (2M) | 1M / 2M | Line/Neutral In, Line/Neutral Out, Functional Earth |
+| **Surge Protection** | Type 2 / Type 1+2 SPD (1P+N, 3P+N) | 1M–4M | L1, L2, L3, N, Earth |
+| **Terminal Blocks** | WAGO DIN mounts, 1-in 4-out distribution blocks | 0.5M–2M | Multiple grouped in/out terminals |
+| **Smart / Aux Devices** | Energy Meters (MID), Shelly DIN relays, Contactors, Bell Transformers | 1M–3M | Control terminals (A1/A2), CT clamp inputs, load terminals |
+| **Accessories** | Blanking plates, Rail separators/dividers | 0.5M, 1M | No terminals (spacers) |
+
+#### Device Properties:
+- **Identifier & Label**: Custom name (e.g., `Q1`, `MCB-1`), circuit description (e.g., "Kitchen Sockets"), room/zone.
+- **Electrical Specs**: Rated current ($I_n$ in Amperes), tripping curve, breaking capacity (kA), rated voltage.
+- **Terminal Layout**:
+  - Exact coordinates of terminals (Top and Bottom rows).
+  - Terminal type: Screw clamp, cage clamp, or busbar comb slot.
+- **Custom Device Creator**: Allow users to define custom modular devices by setting module width, color, and terminal positions/labels.
+
+### 3.3 Canvas Layout & Interaction
+1. **DIN Rail Snapping**:
+   - Devices snap to integer module positions (or 0.5 TE half-module slots).
+   - Collision detection prevents overlapping devices on the same rail.
+   - Drag-to-reorder: dragging a breaker moves neighboring breakers when space permits.
+2. **Canvas Controls**:
+   - Pan and smooth zoom (mouse wheel, pinch-to-zoom, zoom buttons, reset view).
+   - Grid and alignment guidelines.
+   - Selection tool: select individual devices or marquee-select multiple devices to move between rails.
+   - Quick actions: Duplicate device, rotate top/bottom (if applicable), delete.
+
+### 3.4 Wiring & Interconnection Engine
+1. **Point-to-Point Wiring**:
+   - Click/drag from a source terminal to a target terminal to create a connection.
+   - Visual terminal connection indicators (green dot when terminal accepts connection, red if invalid).
+2. **Wire Types & Properties**:
+   - **Conductor Function / Phase**:
+     - Single Phase: Line (L), Neutral (N), Protective Earth (PE).
+     - Three Phase: L1, L2, L3, N, PE.
+     - Extra Low Voltage / DC: DC (+), DC (-), Signal / Control.
+   - **Wire Standards & Color Coding**:
+     - Selectable color palettes (EU/IEC standard: Brown/Blue/Green-Yellow; US/NEC: Black/White/Green/Red; UK legacy: Red/Black/Green).
+     - Custom wire color picker for custom signal wires.
+   - **Wire Cross-Section / Gauge**:
+     - Metric: $1.5\text{ mm}^2$, $2.5\text{ mm}^2$, $4\text{ mm}^2$, $6\text{ mm}^2$, $10\text{ mm}^2$, $16\text{ mm}^2$, $25\text{ mm}^2$.
+     - Visual thickness on canvas proportionally scales with cross-section.
+3. **Busbar Simulation**:
+   - Support for 1-phase and 3-phase comb busbars linking adjacent breakers along the top or bottom terminals.
+   - Visual representation of busbar fork/pin prong strip.
+4. **Wire Routing Visualization**:
+   - **Orthogonal / Gutter Routing**: Wires route through peripheral wiring ducts and gutters cleanly.
+   - **Curved (Bezier) Routing**: Direct, readable curved paths for quick schematic reading.
+   - Terminal capacity indicator: Displays count of wires connected to a single terminal (e.g., alert if $>2$ wires in a single clamp).
+
+### 3.5 Design Rules & Validation Checks (DRC)
+An automated rule-checker flags common electrical design errors:
+- **Overcurrent Protection Mismatch**: Warning if a wire's current-carrying capacity is lower than the upstream breaker's rating (e.g., $1.5\text{ mm}^2$ wire on a 32A breaker).
+- **Direct Short Circuit Warning**: Alert if Line (L) and Neutral (N) or PE are linked directly without a load/device.
+- **RCD Neutral Mismatch**: Alert if circuit neutral bypasses the protecting RCD neutral bar.
+- **Rail Capacity Overfill**: Warning when placed devices exceed rail module capacity.
+- **Unconnected Terminals Notification**: Highlighting unused or incomplete circuits.
+
+---
+
+## 4. Import, Export & Reporting
+
+### 4.1 Project Persistence
+- **Autosave**: Automatically saves current state to browser `localStorage` or `IndexedDB`.
+- **Project Manager**: Save, duplicate, rename, and switch between multiple panel projects.
+
+### 4.2 File Import & Export
+- **JSON File Format**:
+  - Full project schema export (`.json` or `.cbp` file).
+  - Versioned schema for backward compatibility.
+  - Complete structure: panel geometry, device instances, terminal assignments, and wire routes.
+- **Diagram Exports**:
+  - **SVG**: Vector graphic suitable for documentation and CAD embedding.
+  - **PDF**: Printable high-resolution technical drawing with title block, legend, and date.
+  - **PNG**: High-DPI raster image for quick sharing.
+
+### 4.3 Schedules & Documentation Outputs
+- **Bill of Materials (BOM)**:
+  - Table of all modules, types, manufacturer model placeholders, quantities, and module count.
+  - CSV export for procurement.
+- **Wiring Schedule / Cut List**:
+  - List of all connections: Source Terminal -> Destination Terminal, Wire Gauge, Color, Approximate Length.
+- **Printable Panel Faceplate Labels**:
+  - Standard 18mm-wide strip labels with breaker names, circuit numbers, and icons to stick onto the enclosure front cover.
+
+---
+
+## 5. Non-Functional Requirements
+
+- **Performance**: High frame rate (60 fps) canvas interactions, smooth drag-and-drop, and sub-100ms wire re-routing for panels up to 100+ modules and 200+ wires.
+- **Responsive & Accessible**: Optimized for desktop browsers (Chrome, Firefox, Safari, Edge) with touch/stylus support on tablets (iPad/Surface).
+- **Zero Server Dependency**: 100% of the simulation and file generation runs client-side, ensuring data privacy and zero hosting operational cost.
+- **Intuitive UX**:
+  - Standard keyboard shortcuts: `Ctrl+Z` (Undo), `Ctrl+Y` / `Ctrl+Shift+Z` (Redo), `Del` (Delete selected), `Space + Drag` (Canvas Pan), `Esc` (Cancel wire draw).
+  - Light and Dark modes.
+
+---
+
+## 6. Implementation Milestones
+
+- [ ] **Phase 1: Project Setup & Canvas Core**
+  - SvelteKit + Cloudflare adapter setup.
+  - SVG Canvas with Pan/Zoom and DIN rail rendering.
+  - Basic panel dimension configuration modal (rows × slots).
+- [ ] **Phase 2: Component Library & Placement**
+  - Pre-defined device catalog (MCBs, RCDs, RCBOs, Isolators, Terminal blocks).
+  - Drag-and-drop snapping onto rails with collision detection.
+  - Selection, moving, and deletion.
+- [ ] **Phase 3: Wiring System**
+  - Interactive terminal click-to-connect wiring.
+  - Wire phase, color coding, and gauge selection.
+  - Basic routing and wire rendering.
+- [ ] **Phase 4: Persistence & Import/Export**
+  - LocalStorage autosave.
+  - JSON project import/export.
+  - SVG and PNG export.
+- [ ] **Phase 5: Electrical Validation & Schedules**
+  - Design rule validation engine (wire gauge check, short circuit warnings).
+  - Bill of Materials (BOM) & Wiring Schedule CSV/table export.
+  - Panel front label strip generator.
