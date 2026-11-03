@@ -108,6 +108,17 @@ export interface CombBusbar {
   phaseOrder?: ('L1' | 'L2' | 'L3' | 'N')[];
 }
 
+export interface FieldBlock {
+  id: string;
+  label: string; // e.g. "From House", "To Airconditioner"
+  description?: string; // e.g. "230V 2-Wire", "1.5HP AC"
+  x: number;
+  y: number;
+  width?: number; // default 88
+  height?: number; // default 76
+  terminalPosition?: 'top' | 'bottom'; // default 'top'
+}
+
 export interface PanelConfig {
   name: string;
   rows: number; // number of DIN rails

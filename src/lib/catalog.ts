@@ -290,14 +290,15 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     category: 'terminal',
     widthModules: 1,
     poles: 1,
-    colorAccent: '#475569',
+    colorAccent: '#0284c7', // Sky blue distribution accent
     terminals: [
-      { id: 'IN', label: 'IN (16mm²)', position: 'top', slotOffset: 0.5, type: 'screw' },
-      { id: 'OUT_1', label: 'OUT 1', position: 'bottom', slotOffset: 0.22, type: 'screw' },
-      { id: 'OUT_2', label: 'OUT 2', position: 'bottom', slotOffset: 0.5, type: 'screw' },
-      { id: 'OUT_3', label: 'OUT 3', position: 'bottom', slotOffset: 0.78, type: 'screw' }
+      { id: 'IN', label: 'IN (16mm²)', position: 'top', slotOffset: 0.5, yOffset: 14, type: 'screw', defaultRole: 'line1' },
+      { id: 'OUT_1', label: 'OUT 1', position: 'bottom', slotOffset: 0.28, yOffset: 124, type: 'screw', defaultRole: 'line1' },
+      { id: 'OUT_2', label: 'OUT 2', position: 'bottom', slotOffset: 0.72, yOffset: 124, type: 'screw', defaultRole: 'line1' },
+      { id: 'OUT_3', label: 'OUT 3', position: 'bottom', slotOffset: 0.28, yOffset: 146, type: 'screw', defaultRole: 'line1' },
+      { id: 'OUT_4', label: 'OUT 4', position: 'bottom', slotOffset: 0.72, yOffset: 146, type: 'screw', defaultRole: 'line1' }
     ],
-    description: 'Distribution block splitting one main feeder into multiple branch feeds.'
+    description: '1-Module (18mm) unipolar distribution block (UKK 80A style) splitting 1 main incoming feed (up to 16mm²) into 4 branch outgoing circuits (up to 10mm²).'
   },
   {
     typeId: 'terminal-passthrough-1m',

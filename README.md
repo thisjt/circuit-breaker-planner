@@ -19,7 +19,8 @@ Built with **SvelteKit (Svelte 5 Runes)**, **TypeScript**, **Tailwind CSS**, and
   - RCBOs (Compact 1P+N 1-module and standard 2-module).
   - Miniature Circuit Breakers (MCBs: 1P, 2P, 3P with B/C/D curves and 6A–63A ratings).
   - Type 2 Surge Protection Devices (SPDs).
-  - Feed-through & 1-in 4-out Distribution Terminal blocks.
+  - Feed-through & 1-in 4-out Unipolar Distribution blocks (UKK 80A style).
+  - **Detached Field Connection Blocks** (Freestanding off-rail junction blocks for source feeds and branch loads like "From House", "To Airconditioner", with customizable labels, top/bottom terminal flip, and arbitrary canvas placement).
   - Smart DIN Relays (Shelly) & Digital Multifunction Energy Meters (1P and 2P 2-In / 2-Out with Neutral/L2 Passthrough).
   - Transfer Switches: Dual Power Automatic Transfer Switches (ATS 100A, 6-module) & Manual Transfer Switches (MTS Taxnele TX219G 63A 400V, 2-module 3-position I-0-II changeover).
   - Blanking plates.

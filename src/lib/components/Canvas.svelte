@@ -23,6 +23,10 @@
   // Dragging waypoint state
   let draggingWaypoint = $state<{ wireId: string; nodeIndex: number } | null>(null);
 
+  // Dragging detached field block state
+  let draggingFieldBlockId = $state<string | null>(null);
+  let fieldBlockDragOffset = $state<{ x: number; y: number }>({ x: 0, y: 0 });
+
   // Sizing & Spacing
   const railSpacing = $derived(panelStore.config.railSpacing || 230);
   const railWidthPx = $derived(panelStore.config.slotsPerRow * MODULE_WIDTH_PX);
@@ -48,6 +52,17 @@
       const x = PADDING_X + (index - 0.5) * (railWidthPx / panelStore.config.neutralBarSlots);
       const y = panelTotalHeight - PADDING_Y + 44;
       return { x, y, position: 'bottom' };
+    }
+
+    // Detached Field Block
+    const fb = panelStore.fieldBlocks.find((b) => b.id === deviceId);
+    if (fb) {
+      const termPos = fb.terminalPosition || 'top';
+      const w = fb.width || 88;
+      const h = fb.height || 76;
+      const termY = termPos === 'top' ? fb.y + 14 : fb.y + h - 14;
+      const termX = terminalId === '1' || terminalId === 'L' ? fb.x + 24 : fb.x + w - 24;
+      return { x: termX, y: termY, position: termPos };
     }
 
     const device = panelStore.devices.find((d) => d.id === deviceId);
@@ -182,6 +197,16 @@
       return;
     }
 
+    // Dragging detached field block
+    if (draggingFieldBlockId) {
+      const fb = panelStore.fieldBlocks.find((b) => b.id === draggingFieldBlockId);
+      if (fb) {
+        fb.x = Math.round((rawX - fieldBlockDragOffset.x) / 5) * 5;
+        fb.y = Math.round((rawY - fieldBlockDragOffset.y) / 5) * 5;
+      }
+      return;
+    }
+
     // Update wire drafting rubber-band
     if (panelStore.wireDraft) {
       panelStore.updateWireDraftPoint(rawX, rawY);
@@ -225,6 +250,11 @@
       draggingDeviceId = null;
     }
 
+    if (draggingFieldBlockId) {
+      draggingFieldBlockId = null;
+      panelStore.saveToLocalStorage();
+    }
+
     dragHoverRail = null;
     dragHoverSlot = null;
   }
@@ -234,6 +264,38 @@
     const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
     const newZoom = Math.min(Math.max(panelStore.zoom * zoomFactor, 0.4), 2.5);
     panelStore.zoom = Number(newZoom.toFixed(2));
+  }
+
+  // Field block drag start
+  function handleFieldBlockMouseDown(id: string, e: MouseEvent) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    panelStore.select('field_block', id);
+    const fb = panelStore.fieldBlocks.find((b) => b.id === id);
+    if (!fb || !svgElement) return;
+    const rect = svgElement.getBoundingClientRect();
+    const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
+    const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
+    draggingFieldBlockId = id;
+    fieldBlockDragOffset = { x: rawX - fb.x, y: rawY - fb.y };
+  }
+
+  // Field block terminal click
+  function handleFieldBlockTerminalMouseDown(fbId: string, terminalId: string, e: MouseEvent) {
+    e.stopPropagation();
+    const coords = getTerminalCoords(fbId, terminalId);
+    if (!coords) return;
+
+    if (!panelStore.wireDraft) {
+      if (terminalId === '1' || terminalId === 'L') {
+        panelStore.activeWireRole = 'line1';
+      } else {
+        panelStore.activeWireRole = panelStore.config.wireStandard === 'PEC' ? 'line2' : 'neutral';
+      }
+      panelStore.startWireDraft(fbId, terminalId, coords.x, coords.y);
+    } else {
+      panelStore.completeWireDraft(fbId, terminalId);
+    }
   }
 
   // Terminal click handler
@@ -637,6 +699,191 @@
           heightPx={DEVICE_HEIGHT_PX}
           onTerminalMouseDown={handleTerminalMouseDown}
         />
+      {/each}
+
+      <!-- DETACHED FREESTANDING FIELD BLOCKS (OFF-RAIL) -->
+      {#each panelStore.fieldBlocks as fb}
+        {@const isSelected = panelStore.selectedType === 'field_block' && panelStore.selectedId === fb.id}
+        {@const w = fb.width || 88}
+        {@const h = fb.height || 76}
+        {@const isTop = fb.terminalPosition !== 'bottom'}
+        {@const termY = isTop ? 14 : h - 14}
+        {@const words = fb.label.split(' ')}
+        {@const line1 = words.length > 1 && fb.label.length > 10 ? words.slice(0, Math.ceil(words.length / 2)).join(' ') : fb.label}
+        {@const line2 = words.length > 1 && fb.label.length > 10 ? words.slice(Math.ceil(words.length / 2)).join(' ') : ''}
+
+        <g
+          class="field-block select-none cursor-move group"
+          transform="translate({fb.x}, {fb.y})"
+          onmousedown={(e) => handleFieldBlockMouseDown(fb.id, e)}
+          onclick={(e) => {
+            e.stopPropagation();
+            panelStore.select('field_block', fb.id);
+          }}
+          role="button"
+          tabindex="0"
+        >
+          <!-- Outer Shadow & Background (Compact Solid Square Form Factor) -->
+          <rect
+            x="0"
+            y="0"
+            width={w}
+            height={h}
+            rx="6"
+            fill="#ffffff"
+            stroke={isSelected ? '#2563eb' : '#94a3b8'}
+            stroke-width={isSelected ? 3 : 1.5}
+            class="filter drop-shadow-md hover:stroke-amber-400 transition-colors"
+          />
+
+          <!-- Category Top Accent Strip -->
+          <rect
+            x="0"
+            y="0"
+            width={w}
+            height="4"
+            rx="2"
+            fill="#f59e0b"
+          />
+
+          <!-- Badge pill -->
+          <rect
+            x={w / 2 - 25}
+            y={isTop ? 27 : 7}
+            width="50"
+            height="9"
+            rx="2"
+            fill="#fef3c7"
+            stroke="#f59e0b"
+            stroke-width="0.6"
+          />
+          <text
+            x={w / 2}
+            y={isTop ? 33.5 : 13.5}
+            font-size="5"
+            font-weight="900"
+            fill="#b45309"
+            text-anchor="middle"
+            font-family="monospace"
+          >
+            FIELD I/O
+          </text>
+
+          <!-- Block Label ("From House", "To Airconditioner") -->
+          {#if line2}
+            <text
+              x={w / 2}
+              y={isTop ? 46 : 28}
+              font-size="7.5"
+              font-weight="900"
+              fill="#0f172a"
+              text-anchor="middle"
+              font-family="system-ui, sans-serif"
+            >
+              {line1}
+            </text>
+            <text
+              x={w / 2}
+              y={isTop ? 56 : 38}
+              font-size="7.5"
+              font-weight="900"
+              fill="#0f172a"
+              text-anchor="middle"
+              font-family="system-ui, sans-serif"
+            >
+              {line2}
+            </text>
+          {:else}
+            <text
+              x={w / 2}
+              y={isTop ? 50 : 33}
+              font-size="8.5"
+              font-weight="900"
+              fill="#0f172a"
+              text-anchor="middle"
+              font-family="system-ui, sans-serif"
+            >
+              {line1}
+            </text>
+          {/if}
+
+          <!-- Circuit Description -->
+          <text
+            x={w / 2}
+            y={isTop ? 66 : 48}
+            font-size="5.5"
+            font-weight="bold"
+            fill="#64748b"
+            text-anchor="middle"
+            font-family="system-ui, sans-serif"
+          >
+            {fb.description || '230V 2-Wire'}
+          </text>
+
+          <!-- TERMINAL 1 (Line 1 / Hot) -->
+          <g
+            class="terminal cursor-pointer group/term1"
+            transform="translate(24, {termY})"
+            onmousedown={(e) => handleFieldBlockTerminalMouseDown(fb.id, '1', e)}
+            onclick={(e) => handleFieldBlockTerminalMouseDown(fb.id, '1', e)}
+            role="button"
+            tabindex="0"
+          >
+            <circle r="14" fill="transparent" />
+            <title>Terminal 1 (L / Line 1)</title>
+            <circle
+              r="6"
+              fill="#e2e8f0"
+              stroke="#64748b"
+              stroke-width="1.5"
+              class="transition-all group-hover/term1:stroke-blue-500 group-hover/term1:scale-125"
+            />
+            <line x1="-3" y1="-2" x2="3" y2="2" stroke="#475569" stroke-width="1.5" />
+            <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term1:opacity-100 transition-opacity" />
+            <text
+              x="0"
+              y={isTop ? -9 : 14}
+              text-anchor="middle"
+              font-size="5.5"
+              font-weight="bold"
+              fill="#2563eb"
+            >
+              1 (L)
+            </text>
+          </g>
+
+          <!-- TERMINAL 2 (Neutral / Line 2) -->
+          <g
+            class="terminal cursor-pointer group/term2"
+            transform="translate({w - 24}, {termY})"
+            onmousedown={(e) => handleFieldBlockTerminalMouseDown(fb.id, '2', e)}
+            onclick={(e) => handleFieldBlockTerminalMouseDown(fb.id, '2', e)}
+            role="button"
+            tabindex="0"
+          >
+            <circle r="14" fill="transparent" />
+            <title>Terminal 2 (N / Line 2)</title>
+            <circle
+              r="6"
+              fill="#e2e8f0"
+              stroke="#64748b"
+              stroke-width="1.5"
+              class="transition-all group-hover/term2:stroke-blue-500 group-hover/term2:scale-125"
+            />
+            <line x1="-3" y1="-2" x2="3" y2="2" stroke="#475569" stroke-width="1.5" />
+            <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term2:opacity-100 transition-opacity" />
+            <text
+              x="0"
+              y={isTop ? -9 : 14}
+              text-anchor="middle"
+              font-size="5.5"
+              font-weight="bold"
+              fill="#dc2626"
+            >
+              2 (N)
+            </text>
+          </g>
+        </g>
       {/each}
 
       <!-- ROUTED WIRES -->

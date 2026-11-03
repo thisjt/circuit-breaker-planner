@@ -14,11 +14,13 @@
     Plus,
     Minus,
     ArrowUpDown,
+    Square,
   } from "@lucide/svelte";
 
   const selectedDevice = $derived(panelStore.selectedDevice);
   const selectedWire = $derived(panelStore.selectedWire);
   const selectedBusbar = $derived(panelStore.selectedBusbar);
+  const selectedFieldBlock = $derived(panelStore.selectedFieldBlock);
   const selectedDeviceDef = $derived(
     selectedDevice ? getDeviceDef(selectedDevice.typeId) : undefined,
   );
@@ -30,6 +32,17 @@
           (w) =>
             w.sourceDeviceId === selectedDevice.id ||
             w.targetDeviceId === selectedDevice.id,
+        )
+      : [],
+  );
+
+  // Wires connected to current detached field block
+  const connectedFieldWires = $derived(
+    selectedFieldBlock
+      ? panelStore.wires.filter(
+          (w) =>
+            w.sourceDeviceId === selectedFieldBlock.id ||
+            w.targetDeviceId === selectedFieldBlock.id,
         )
       : [],
   );
@@ -75,13 +88,15 @@
       <div class="flex items-center gap-2">
         <Sliders class="w-4 h-4 text-blue-400" />
         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-100">
-          Breaker Properties
+          {selectedDeviceDef.category === "terminal"
+            ? "DIN Terminal Block"
+            : "Breaker Properties"}
         </h3>
       </div>
       <button
         class="text-red-400 hover:text-red-300 p-1 hover:bg-slate-800 rounded transition"
         onclick={() => panelStore.removeDevice(selectedDevice.id)}
-        title="Delete Breaker"
+        title={selectedDeviceDef.category === "terminal" ? "Delete Terminal" : "Delete Breaker"}
       >
         <Trash2 class="w-4 h-4" />
       </button>
@@ -129,35 +144,37 @@
         />
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block font-semibold text-slate-400 mb-1"
-            >Rated Amps</label
-          >
-          <input
-            type="number"
-            bind:value={selectedDevice.ratedAmps}
-            oninput={() => panelStore.saveToLocalStorage()}
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none focus:border-blue-500 font-mono"
-          />
-        </div>
-        {#if selectedDevice.curve}
+      {#if selectedDeviceDef.category !== "terminal" && selectedDeviceDef.category !== "accessory"}
+        <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block font-semibold text-slate-400 mb-1"
-              >Trip Curve</label
+              >Rated Amps</label
             >
-            <select
-              bind:value={selectedDevice.curve}
-              onchange={() => panelStore.saveToLocalStorage()}
+            <input
+              type="number"
+              bind:value={selectedDevice.ratedAmps}
+              oninput={() => panelStore.saveToLocalStorage()}
               class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none focus:border-blue-500 font-mono"
-            >
-              <option value="B">B Curve</option>
-              <option value="C">C Curve (Standard)</option>
-              <option value="D">D Curve (High Inrush)</option>
-            </select>
+            />
           </div>
-        {/if}
-      </div>
+          {#if selectedDevice.curve}
+            <div>
+              <label class="block font-semibold text-slate-400 mb-1"
+                >Trip Curve</label
+              >
+              <select
+                bind:value={selectedDevice.curve}
+                onchange={() => panelStore.saveToLocalStorage()}
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none focus:border-blue-500 font-mono"
+              >
+                <option value="B">B Curve</option>
+                <option value="C">C Curve (Standard)</option>
+                <option value="D">D Curve (High Inrush)</option>
+              </select>
+            </div>
+          {/if}
+        </div>
+      {/if}
 
       <!-- Rail & Slot Position -->
       <div
@@ -549,6 +566,183 @@
               onchange={() => panelStore.saveToLocalStorage()}
               class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none font-mono"
             />
+          </div>
+        </div>
+      </div>
+
+    <!-- DETACHED FREESTANDING FIELD BLOCK -->
+    {:else if selectedFieldBlock}
+      <div
+        class="p-4 border-b border-slate-800 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-2">
+          <Square class="w-4 h-4 text-amber-400" />
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-100">
+            Field Block (Detached)
+          </h3>
+        </div>
+        <button
+          class="text-red-400 hover:text-red-300 p-1 hover:bg-slate-800 rounded transition"
+          onclick={() => panelStore.removeFieldBlock(selectedFieldBlock.id)}
+          title="Delete Field Block"
+        >
+          <Trash2 class="w-4 h-4" />
+        </button>
+      </div>
+
+      <div class="p-4 space-y-4 text-xs">
+        <div
+          class="bg-amber-950/20 border border-amber-500/30 p-2.5 rounded-xl text-amber-300/90 text-[11px] leading-relaxed"
+        >
+          <span class="font-bold text-amber-200">Freestanding Off-Rail Block:</span>
+          Position anywhere on the canvas (gutters, off-panel, feed lines). Does not snap to or occupy DIN rail slots.
+        </div>
+
+        <div>
+          <label class="block font-semibold text-amber-400 mb-1"
+            >Block Label / Destination</label
+          >
+          <input
+            type="text"
+            bind:value={selectedFieldBlock.label}
+            oninput={() => panelStore.saveToLocalStorage()}
+            class="w-full bg-slate-950 border border-amber-500/60 rounded-lg p-2 text-slate-100 outline-none focus:border-amber-400 font-bold text-sm tracking-wide"
+            placeholder="e.g. From House, To Airconditioner"
+          />
+          <p class="text-[10px] text-slate-400 mt-1">
+            Display name shown on the block faceplate.
+          </p>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-400 mb-1"
+            >Circuit Details / Voltage</label
+          >
+          <input
+            type="text"
+            bind:value={selectedFieldBlock.description}
+            oninput={() => panelStore.saveToLocalStorage()}
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none focus:border-blue-500"
+            placeholder="e.g. 230V 2-Wire Delta, 1.5HP Inverter AC"
+          />
+        </div>
+
+        <!-- Terminal Facing Orientation -->
+        <div>
+          <label class="block font-semibold text-slate-400 mb-1"
+            >Terminal Orientation</label
+          >
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              class="py-2 rounded-lg border font-semibold {(selectedFieldBlock.terminalPosition || 'top') ===
+              'top'
+                ? 'bg-amber-600 border-amber-500 text-white'
+                : 'bg-slate-950 border-slate-800 text-slate-300'}"
+              onclick={() => {
+                selectedFieldBlock.terminalPosition = 'top';
+                panelStore.saveToLocalStorage();
+              }}
+            >
+              Top Terminals
+            </button>
+            <button
+              class="py-2 rounded-lg border font-semibold {selectedFieldBlock.terminalPosition ===
+              'bottom'
+                ? 'bg-amber-600 border-amber-500 text-white'
+                : 'bg-slate-950 border-slate-800 text-slate-300'}"
+              onclick={() => {
+                selectedFieldBlock.terminalPosition = 'bottom';
+                panelStore.saveToLocalStorage();
+              }}
+            >
+              Bottom Terminals
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-500 mt-1">
+            Flip terminals to face toward your breakers or busbars.
+          </p>
+        </div>
+
+        <!-- Canvas Position -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-[10px] font-semibold text-slate-400 uppercase">
+            Canvas Position (Drag or Tweak)
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-500 mb-0.5">X Position (px)</label>
+              <input
+                type="number"
+                step="5"
+                bind:value={selectedFieldBlock.x}
+                oninput={() => panelStore.saveToLocalStorage()}
+                class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 outline-none font-mono"
+              />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500 mb-0.5">Y Position (px)</label>
+              <input
+                type="number"
+                step="5"
+                bind:value={selectedFieldBlock.y}
+                oninput={() => panelStore.saveToLocalStorage()}
+                class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 outline-none font-mono"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Ports & Connections -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-[10px] font-semibold text-slate-400 uppercase">
+            Terminal Ports
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="bg-blue-950/40 border border-blue-900/60 p-2 rounded-lg">
+              <div class="text-[10px] text-blue-400 font-bold">Terminal 1</div>
+              <div class="text-xs font-mono font-bold text-slate-200">Line / L1</div>
+            </div>
+            <div class="bg-red-950/40 border border-red-900/60 p-2 rounded-lg">
+              <div class="text-[10px] text-red-400 font-bold">Terminal 2</div>
+              <div class="text-xs font-mono font-bold text-slate-200">Neutral / L2</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80">
+            <div class="text-[10px] font-semibold text-slate-400 mb-1">
+              Connected Wires ({connectedFieldWires.length})
+            </div>
+            {#if connectedFieldWires.length === 0}
+              <div class="text-[11px] text-slate-500 italic py-1">
+                No wires attached yet. Click and drag from Terminal 1 or 2 to connect.
+              </div>
+            {:else}
+              <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                {#each connectedFieldWires as wire}
+                  {@const isSource = wire.sourceDeviceId === selectedFieldBlock.id}
+                  {@const localTerm = isSource ? wire.sourceTerminalId : wire.targetTerminalId}
+                  {@const remoteDev = isSource ? wire.targetDeviceId : wire.sourceDeviceId}
+                  {@const remoteTerm = isSource ? wire.targetTerminalId : wire.sourceTerminalId}
+                  <div class="flex items-center justify-between bg-slate-900 px-2 py-1.5 rounded text-[11px]">
+                    <div class="flex items-center gap-1.5">
+                      <span
+                        class="w-2.5 h-2.5 rounded-full inline-block border border-black/40 flex-shrink-0"
+                        style="background-color: {wire.color};"
+                      ></span>
+                      <span class="font-mono text-slate-300">T{localTerm} → {remoteDev}:{remoteTerm}</span>
+                      <span class="text-slate-500 text-[10px]">({wire.gaugeMetric}mm²)</span>
+                    </div>
+                    <button
+                      class="text-red-400 hover:text-red-300 p-0.5 rounded hover:bg-slate-800"
+                      onclick={() => panelStore.removeWire(wire.id)}
+                      title="Disconnect wire"
+                    >
+                      <Trash2 class="w-3 h-3" />
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           </div>
         </div>
       </div>

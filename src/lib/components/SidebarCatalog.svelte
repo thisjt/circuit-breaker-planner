@@ -24,7 +24,7 @@
       { id: "rcbo", label: "RCBO", icon: Zap },
       { id: "mcb", label: "MCB Breakers", icon: SlidersHorizontal },
       { id: "spd", label: "Surge (SPD)", icon: Zap },
-      { id: "terminal", label: "Terminals", icon: Grid },
+      { id: "terminal", label: "Terminals & Field Blocks", icon: Grid },
       { id: "smart", label: "Smart Relays & Meters", icon: Cpu },
       { id: "ats", label: "Transfer Switches (ATS/MTS)", icon: Power },
     ];
@@ -73,7 +73,7 @@
       <Search class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
       <input
         type="text"
-        placeholder="Search breakers, RCD, SPD..."
+        placeholder="Search breakers, field block, RCD..."
         bind:value={searchQuery}
         class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 transition"
       />
@@ -97,6 +97,36 @@
 
   <!-- Device Catalog List -->
   <div class="flex-1 overflow-y-auto p-3 space-y-2">
+    {#if selectedCategory === "all" || selectedCategory === "terminal"}
+      <!-- Freestanding Detached Field Block Card -->
+      <div
+        class="bg-gradient-to-r from-amber-950/50 to-slate-900 border border-amber-600/60 hover:border-amber-400 rounded-xl p-3 cursor-pointer transition shadow-md group flex flex-col gap-1.5"
+        onclick={() => panelStore.addFieldBlock()}
+        role="button"
+        tabindex="0"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-7 rounded-sm bg-amber-500 flex-shrink-0"></div>
+            <div>
+              <div class="text-xs font-bold text-amber-300 group-hover:text-amber-200 leading-tight">
+                + Detached Field Block
+              </div>
+              <div class="text-[10px] text-amber-400/80 font-mono mt-0.5">
+                Freestanding (Off-Rail) • 2 Terminals
+              </div>
+            </div>
+          </div>
+          <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-mono">
+            Off-Rail
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-300 leading-relaxed">
+          Freestanding 2-terminal block for external supply feeds ("From House", "From Solar") or appliance circuits ("To Airconditioner"). Place freely anywhere off the DIN rail.
+        </p>
+      </div>
+    {/if}
+
     <div
       class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2"
     >

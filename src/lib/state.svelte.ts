@@ -2,6 +2,7 @@ import type {
   CombBusbar,
   DRCWarning,
   DeviceCategory,
+  FieldBlock,
   PanelConfig,
   PlacedDevice,
   TerminalPosition,
@@ -18,6 +19,7 @@ export interface HistoryState {
   devices: PlacedDevice[];
   wires: WireConnection[];
   busbars: CombBusbar[];
+  fieldBlocks?: FieldBlock[];
   config: PanelConfig;
 }
 
@@ -37,9 +39,10 @@ export class PanelState {
   devices = $state<PlacedDevice[]>([]);
   wires = $state<WireConnection[]>([]);
   busbars = $state<CombBusbar[]>([]);
+  fieldBlocks = $state<FieldBlock[]>([]);
 
   selectedId = $state<string | null>(null);
-  selectedType = $state<'device' | 'wire' | 'busbar' | null>(null);
+  selectedType = $state<'device' | 'wire' | 'busbar' | 'field_block' | null>(null);
 
   activeTool = $state<'select' | 'wire' | 'busbar' | 'place'>('select');
   pendingPlaceTypeId = $state<string | null>(null);
@@ -82,6 +85,10 @@ export class PanelState {
     this.selectedType === 'busbar' ? this.busbars.find((b) => b.id === this.selectedId) : undefined
   );
 
+  selectedFieldBlock = $derived<FieldBlock | undefined>(
+    this.selectedType === 'field_block' ? this.fieldBlocks.find((fb) => fb.id === this.selectedId) : undefined
+  );
+
   constructor() {
     this.initFromLocalStorage();
   }
@@ -91,6 +98,7 @@ export class PanelState {
       devices: JSON.parse(JSON.stringify(this.devices)),
       wires: JSON.parse(JSON.stringify(this.wires)),
       busbars: JSON.parse(JSON.stringify(this.busbars)),
+      fieldBlocks: JSON.parse(JSON.stringify(this.fieldBlocks)),
       config: JSON.parse(JSON.stringify(this.config))
     };
     this.undoStack.push(JSON.stringify(snap));
@@ -106,7 +114,8 @@ export class PanelState {
         config: this.config,
         devices: this.devices,
         wires: this.wires,
-        busbars: this.busbars
+        busbars: this.busbars,
+        fieldBlocks: this.fieldBlocks
       };
       localStorage.setItem('circuit_breaker_planner_data', JSON.stringify(data));
     } catch (e) {
@@ -130,6 +139,7 @@ export class PanelState {
         if (parsed.devices) this.devices = parsed.devices;
         if (parsed.wires) this.wires = parsed.wires;
         if (parsed.busbars) this.busbars = parsed.busbars;
+        if (parsed.fieldBlocks) this.fieldBlocks = parsed.fieldBlocks;
         return;
       }
     } catch (e) {
@@ -145,6 +155,7 @@ export class PanelState {
       devices: this.devices,
       wires: this.wires,
       busbars: this.busbars,
+      fieldBlocks: this.fieldBlocks,
       config: this.config
     };
     this.redoStack.push(JSON.stringify(currentState));
@@ -155,6 +166,7 @@ export class PanelState {
     this.devices = prev.devices;
     this.wires = prev.wires;
     this.busbars = prev.busbars;
+    this.fieldBlocks = prev.fieldBlocks || [];
     this.config = prev.config;
     this.saveToLocalStorage();
   }
@@ -168,6 +180,7 @@ export class PanelState {
       devices: this.devices,
       wires: this.wires,
       busbars: this.busbars,
+      fieldBlocks: this.fieldBlocks,
       config: this.config
     };
     this.undoStack.push(JSON.stringify(currentState));
@@ -176,12 +189,13 @@ export class PanelState {
     this.devices = next.devices;
     this.wires = next.wires;
     this.busbars = next.busbars;
+    this.fieldBlocks = next.fieldBlocks || [];
     this.config = next.config;
     this.saveToLocalStorage();
   }
 
   // Selection
-  select(type: 'device' | 'wire' | 'busbar' | null, id: string | null) {
+  select(type: 'device' | 'wire' | 'busbar' | 'field_block' | null, id: string | null) {
     this.selectedType = type;
     this.selectedId = id;
   }
@@ -189,6 +203,54 @@ export class PanelState {
   clearSelection() {
     this.selectedType = null;
     this.selectedId = null;
+  }
+
+  // Detached Field Block Management
+  addFieldBlock(label?: string, x?: number, y?: number): FieldBlock {
+    this.saveHistory();
+    const id = `fb_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const count = this.fieldBlocks.length;
+    const defaultLabels = ['To Airconditioner', 'From House', 'To Water Heater', 'From Solar Inverter', 'To Kitchen Outlets'];
+    const assignedLabel = label || (count < defaultLabels.length ? defaultLabels[count] : `Field Circuit ${count + 1}`);
+
+    // Compute pleasant initial position: place in right gutter or below panel
+    const defaultX = x !== undefined ? x : 680;
+    const defaultY = y !== undefined ? y : 90 + (count % 4) * 100;
+
+    const newBlock: FieldBlock = {
+      id,
+      label: assignedLabel,
+      description: '230V 2-Wire',
+      x: defaultX,
+      y: defaultY,
+      width: 88,
+      height: 76,
+      terminalPosition: 'top'
+    };
+
+    this.fieldBlocks.push(newBlock);
+    this.select('field_block', newBlock.id);
+    this.saveToLocalStorage();
+    return newBlock;
+  }
+
+  updateFieldBlock(id: string, updates: Partial<FieldBlock>) {
+    const fb = this.fieldBlocks.find((b) => b.id === id);
+    if (!fb) return;
+    Object.assign(fb, updates);
+    this.saveToLocalStorage();
+  }
+
+  removeFieldBlock(id: string) {
+    this.saveHistory();
+    this.fieldBlocks = this.fieldBlocks.filter((b) => b.id !== id);
+    this.wires = this.wires.filter(
+      (w) => w.sourceDeviceId !== id && w.targetDeviceId !== id
+    );
+    if (this.selectedId === id) {
+      this.clearSelection();
+    }
+    this.saveToLocalStorage();
   }
 
   // Device Placement
@@ -651,7 +713,8 @@ export class PanelState {
         config: this.config,
         devices: this.devices,
         wires: this.wires,
-        busbars: this.busbars
+        busbars: this.busbars,
+        fieldBlocks: this.fieldBlocks
       },
       null,
       2
@@ -667,6 +730,7 @@ export class PanelState {
       this.devices = data.devices;
       this.wires = Array.isArray(data.wires) ? data.wires : [];
       this.busbars = Array.isArray(data.busbars) ? data.busbars : [];
+      this.fieldBlocks = Array.isArray(data.fieldBlocks) ? data.fieldBlocks : [];
       this.clearSelection();
       this.saveToLocalStorage();
       return true;
@@ -713,10 +777,10 @@ export class PanelState {
   exportWireScheduleCSV(): string {
     const headers = ['Wire ID', 'From Device', 'From Terminal', 'To Device', 'To Terminal', 'Role', 'Gauge (mm²)', 'Color'];
     const rows = this.wires.map((w) => {
-      const srcDev = this.devices.find((d) => d.id === w.sourceDeviceId);
-      const tgtDev = this.devices.find((d) => d.id === w.targetDeviceId);
-      const srcName = srcDev?.customLabel || w.sourceDeviceId;
-      const tgtName = tgtDev?.customLabel || w.targetDeviceId;
+      const srcDev = this.devices.find((d) => d.id === w.sourceDeviceId) || this.fieldBlocks.find((b) => b.id === w.sourceDeviceId);
+      const tgtDev = this.devices.find((d) => d.id === w.targetDeviceId) || this.fieldBlocks.find((b) => b.id === w.targetDeviceId);
+      const srcName = (srcDev as any)?.label || (srcDev as any)?.customLabel || w.sourceDeviceId;
+      const tgtName = (tgtDev as any)?.label || (tgtDev as any)?.customLabel || w.targetDeviceId;
       return [
         `"${w.id}"`,
         `"${srcName}"`,

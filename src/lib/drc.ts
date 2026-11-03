@@ -33,6 +33,7 @@ export function runDesignRuleCheck(
     const checkBreakerAmpacity = (dev: PlacedDevice | undefined, terminalId: string) => {
       if (!dev) return;
       const def = getDeviceDef(dev.typeId);
+      if (def?.category === 'terminal') return;
       const breakerAmps = dev.ratedAmps || def?.ratedAmps;
       
       // Check if this terminal is an OUT terminal on a protection breaker

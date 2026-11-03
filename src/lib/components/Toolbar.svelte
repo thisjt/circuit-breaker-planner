@@ -18,6 +18,7 @@
     ArrowUpDown,
     Minus,
     Plus,
+    ExternalLink,
   } from "@lucide/svelte";
 
   interface Props {
@@ -211,6 +212,16 @@
     >
       <Layers class="w-3.5 h-3.5" />
       <span>Comb Busbar</span>
+    </button>
+
+    <!-- Detached Field Block -->
+    <button
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 hover:text-amber-100 hover:bg-amber-950/60 border border-amber-600/50 transition shadow-sm"
+      onclick={() => panelStore.addFieldBlock()}
+      title="Add detached external connection block (e.g. 'From House', 'To Airconditioner') that can be placed anywhere on the canvas"
+    >
+      <ExternalLink class="w-3.5 h-3.5 text-amber-400" />
+      <span>+ Field Block</span>
     </button>
 
     <div class="w-px h-5 bg-slate-800 mx-1"></div>
