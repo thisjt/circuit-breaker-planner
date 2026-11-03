@@ -11,10 +11,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     ratedAmps: 63,
     colorAccent: '#dc2626', // Red toggle
     terminals: [
-      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: 'Double pole main incomer switch disconnector.'
   },
@@ -27,10 +27,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     ratedAmps: 100,
     colorAccent: '#dc2626',
     terminals: [
-      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: 'Heavy-duty 100A double pole main incomer.'
   },
@@ -43,14 +43,14 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     ratedAmps: 63,
     colorAccent: '#dc2626',
     terminals: [
-      { id: 'L1_IN', label: 'L1 In', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'L2_IN', label: 'L2 In', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L3_IN', label: 'L3 In', position: 'top', slotOffset: 2, type: 'screw', defaultRole: 'line3' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 3, type: 'screw', defaultRole: 'neutral' },
-      { id: 'L1_OUT', label: 'L1 Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'L2_OUT', label: 'L2 Out', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L3_OUT', label: 'L3 Out', position: 'bottom', slotOffset: 2, type: 'screw', defaultRole: 'line3' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 3, type: 'screw', defaultRole: 'neutral' }
+      { id: 'L1_IN', label: 'L1 In', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'L2_IN', label: 'L2 In', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L3_IN', label: 'L3 In', position: 'top', slotOffset: 2.5, type: 'screw', defaultRole: 'line3' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 3.5, type: 'screw', defaultRole: 'neutral' },
+      { id: 'L1_OUT', label: 'L1 Out', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'L2_OUT', label: 'L2 Out', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L3_OUT', label: 'L3 Out', position: 'bottom', slotOffset: 2.5, type: 'screw', defaultRole: 'line3' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 3.5, type: 'screw', defaultRole: 'neutral' }
     ],
     description: '4-Pole 3-Phase + Neutral main incomer switch.'
   },
@@ -68,10 +68,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     hasTripWindow: true,
     colorAccent: '#2563eb', // Blue toggle/test button
     terminals: [
-      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: 'Residual Current Circuit Breaker (30mA trip for personal protection).'
   },
@@ -87,10 +87,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     hasTripWindow: true,
     colorAccent: '#2563eb',
     terminals: [
-      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: 'High capacity 63A 30mA RCD for multi-circuit branch groups.'
   },
@@ -110,10 +110,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     hasTripWindow: true,
     colorAccent: '#059669', // Emerald accent
     terminals: [
-      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'neutral' },
-      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'neutral' }
+      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0.28, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' },
+      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' }
     ],
     description: 'Slim 1-module RCBO saving space in consumer units.'
   },
@@ -131,10 +131,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     hasTripWindow: true,
     colorAccent: '#059669',
     terminals: [
-      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'neutral' },
-      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'neutral' }
+      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0.28, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' },
+      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' }
     ],
     description: 'Slim 20A RCBO suitable for 20A branch outlets.'
   },
@@ -152,10 +152,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     hasTripWindow: true,
     colorAccent: '#059669',
     terminals: [
-      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N In', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: 'N Out', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: 'Standard 2-wide 32A RCBO for heavy inductive loads (water heaters, ACs).'
   },
@@ -172,8 +172,8 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     breakingCapacityKa: 6,
     colorAccent: '#334155',
     terminals: [
-      { id: 'IN', label: '1 (In)', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'OUT', label: '2 (Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' }
+      { id: 'IN', label: '1 (In)', position: 'top', slotOffset: 0.5, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'OUT', label: '2 (Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' }
     ],
     description: 'Standard 16A lighting / general circuit breaker.'
   },
@@ -188,8 +188,8 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     breakingCapacityKa: 6,
     colorAccent: '#334155',
     terminals: [
-      { id: 'IN', label: '1 (In)', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'OUT', label: '2 (Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' }
+      { id: 'IN', label: '1 (In)', position: 'top', slotOffset: 0.5, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'OUT', label: '2 (Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' }
     ],
     description: 'Standard 20A socket outlet branch breaker.'
   },
@@ -204,8 +204,8 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     breakingCapacityKa: 6,
     colorAccent: '#334155',
     terminals: [
-      { id: 'IN', label: '1 (In)', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'OUT', label: '2 (Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' }
+      { id: 'IN', label: '1 (In)', position: 'top', slotOffset: 0.5, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'OUT', label: '2 (Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' }
     ],
     description: '32A high capacity branch circuit breaker.'
   },
@@ -220,10 +220,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     breakingCapacityKa: 6,
     colorAccent: '#334155',
     terminals: [
-      { id: 'L1_IN', label: '1 (L1 In)', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'L2_IN', label: '3 (L2 In)', position: 'top', slotOffset: 1, type: 'comb_slot', defaultRole: 'line2' },
-      { id: 'L1_OUT', label: '2 (L1 Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'L2_OUT', label: '4 (L2 Out)', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L1_IN', label: '1 (L1 In)', position: 'top', slotOffset: 0.5, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'L2_IN', label: '3 (L2 In)', position: 'top', slotOffset: 1.5, type: 'comb_slot', defaultRole: 'line2' },
+      { id: 'L1_OUT', label: '2 (L1 Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'L2_OUT', label: '4 (L2 Out)', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: '2-Pole 20A breaker for 230V 2-wire delta systems or 2-phase equipment.'
   },
@@ -238,10 +238,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     breakingCapacityKa: 6,
     colorAccent: '#334155',
     terminals: [
-      { id: 'L1_IN', label: '1 (L1 In)', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'L2_IN', label: '3 (L2 In)', position: 'top', slotOffset: 1, type: 'comb_slot', defaultRole: 'line2' },
-      { id: 'L1_OUT', label: '2 (L1 Out)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'L2_OUT', label: '4 (L2 Out)', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' }
+      { id: 'L1_IN', label: '1 (L1 In)', position: 'top', slotOffset: 0.5, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'L2_IN', label: '3 (L2 In)', position: 'top', slotOffset: 1.5, type: 'comb_slot', defaultRole: 'line2' },
+      { id: 'L1_OUT', label: '2 (L1 Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'L2_OUT', label: '4 (L2 Out)', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
     ],
     description: '2-Pole 32A breaker for air conditioners and water heaters.'
   },
@@ -256,12 +256,12 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     breakingCapacityKa: 6,
     colorAccent: '#334155',
     terminals: [
-      { id: 'L1_IN', label: '1', position: 'top', slotOffset: 0, type: 'comb_slot', defaultRole: 'line1' },
-      { id: 'L2_IN', label: '3', position: 'top', slotOffset: 1, type: 'comb_slot', defaultRole: 'line2' },
-      { id: 'L3_IN', label: '5', position: 'top', slotOffset: 2, type: 'comb_slot', defaultRole: 'line3' },
-      { id: 'L1_OUT', label: '2', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'L2_OUT', label: '4', position: 'bottom', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'L3_OUT', label: '6', position: 'bottom', slotOffset: 2, type: 'screw', defaultRole: 'line3' }
+      { id: 'L1_IN', label: '1', position: 'top', slotOffset: 0.5, type: 'comb_slot', defaultRole: 'line1' },
+      { id: 'L2_IN', label: '3', position: 'top', slotOffset: 1.5, type: 'comb_slot', defaultRole: 'line2' },
+      { id: 'L3_IN', label: '5', position: 'top', slotOffset: 2.5, type: 'comb_slot', defaultRole: 'line3' },
+      { id: 'L1_OUT', label: '2', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'L2_OUT', label: '4', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L3_OUT', label: '6', position: 'bottom', slotOffset: 2.5, type: 'screw', defaultRole: 'line3' }
     ],
     description: '3-Phase 32A breaker for motors and commercial equipment.'
   },
@@ -276,9 +276,9 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     colorAccent: '#0284c7', // Sky blue
     hasTripWindow: true,
     terminals: [
-      { id: 'L', label: 'L / L1', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N', label: 'N / L2', position: 'top', slotOffset: 1, type: 'screw', defaultRole: 'line2' },
-      { id: 'PE', label: 'PE (Ground)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'earth' }
+      { id: 'L', label: 'L / L1', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N', label: 'N / L2', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'PE', label: 'PE (Ground)', position: 'bottom', slotOffset: 1.0, type: 'screw', defaultRole: 'earth' }
     ],
     description: 'Type 2 Surge Arrester (20kA/40kA) protecting against transient overvoltages.'
   },
@@ -292,10 +292,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     poles: 1,
     colorAccent: '#475569',
     terminals: [
-      { id: 'IN', label: 'IN (16mm²)', position: 'top', slotOffset: 0, type: 'screw' },
-      { id: 'OUT_1', label: 'OUT 1', position: 'bottom', slotOffset: 0, type: 'screw' },
-      { id: 'OUT_2', label: 'OUT 2', position: 'bottom', slotOffset: 0, type: 'screw' },
-      { id: 'OUT_3', label: 'OUT 3', position: 'bottom', slotOffset: 0, type: 'screw' }
+      { id: 'IN', label: 'IN (16mm²)', position: 'top', slotOffset: 0.5, type: 'screw' },
+      { id: 'OUT_1', label: 'OUT 1', position: 'bottom', slotOffset: 0.22, type: 'screw' },
+      { id: 'OUT_2', label: 'OUT 2', position: 'bottom', slotOffset: 0.5, type: 'screw' },
+      { id: 'OUT_3', label: 'OUT 3', position: 'bottom', slotOffset: 0.78, type: 'screw' }
     ],
     description: 'Distribution block splitting one main feeder into multiple branch feeds.'
   },
@@ -307,8 +307,8 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     poles: 1,
     colorAccent: '#64748b',
     terminals: [
-      { id: 'TOP', label: 'Top In/Out', position: 'top', slotOffset: 0, type: 'cage' },
-      { id: 'BOTTOM', label: 'Bottom In/Out', position: 'bottom', slotOffset: 0, type: 'cage' }
+      { id: 'TOP', label: 'Top In/Out', position: 'top', slotOffset: 0.5, type: 'cage' },
+      { id: 'BOTTOM', label: 'Bottom In/Out', position: 'bottom', slotOffset: 0.5, type: 'cage' }
     ],
     description: 'High current terminal block for passing conductors across rows.'
   },
@@ -322,10 +322,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     poles: 1,
     colorAccent: '#0ea5e9',
     terminals: [
-      { id: 'L', label: 'L (Line)', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N', label: 'N (Neutral)', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'neutral' },
-      { id: 'SW', label: 'SW (Switch)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'signal' },
-      { id: 'OUT', label: 'O (Output)', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' }
+      { id: 'L', label: 'L (Line)', position: 'top', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N', label: 'N (Neutral)', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' },
+      { id: 'SW', label: 'SW (Switch)', position: 'bottom', slotOffset: 0.28, type: 'screw', defaultRole: 'signal' },
+      { id: 'OUT', label: 'O (Output)', position: 'bottom', slotOffset: 0.72, type: 'screw', defaultRole: 'line1' }
     ],
     description: 'Wi-Fi/LAN smart dry contact DIN-mounted relay.'
   },
@@ -338,11 +338,42 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     ratedAmps: 45,
     colorAccent: '#10b981',
     terminals: [
-      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N', position: 'top', slotOffset: 0, type: 'screw', defaultRole: 'neutral' },
-      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0, type: 'screw', defaultRole: 'line1' }
+      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: 'N', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' },
+      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' }
     ],
     description: 'Direct reading single phase kWh energy monitor.'
+  },
+
+  // TRANSFER SWITCHES (ATS)
+  {
+    typeId: 'ats-2p-100a',
+    name: 'Automatic Transfer Switch (ATS) 100A',
+    category: 'ats',
+    widthModules: 6,
+    poles: 2,
+    ratedAmps: 100,
+    colorAccent: '#dc2626',
+    terminals: [
+      // Top 2 terminals: Main Power In (City / Normal Power A)
+      { id: 'MAIN_L', label: 'Main L (A)', position: 'top', slotOffset: 0.5, yOffset: 14, type: 'screw', defaultRole: 'line1' },
+      { id: 'MAIN_N', label: 'Main N (A)', position: 'top', slotOffset: 1.5, yOffset: 14, type: 'screw', defaultRole: 'neutral' },
+
+      // Above of bottom 2 terminals: Standby Power In (Generator / Reverse Power B)
+      { id: 'STANDBY_L', label: 'Standby L', position: 'bottom', slotOffset: 0.5, yOffset: 114, type: 'screw', defaultRole: 'line1' },
+      { id: 'STANDBY_N', label: 'Standby N', position: 'bottom', slotOffset: 1.5, yOffset: 114, type: 'screw', defaultRole: 'neutral' },
+
+      // Below of bottom 2 terminals: ATS Output (Load Feed)
+      { id: 'OUT_L', label: 'ATS Out L', position: 'bottom', slotOffset: 0.5, yOffset: 146, type: 'screw', defaultRole: 'line1' },
+      { id: 'OUT_N', label: 'ATS Out N', position: 'bottom', slotOffset: 1.5, yOffset: 146, type: 'screw', defaultRole: 'neutral' },
+
+      // Auxiliary / Control Signal Terminals (Right side green block)
+      { id: 'SIG_AR', label: 'AR', position: 'top', slotOffset: 4.55, yOffset: 12, type: 'screw', defaultRole: 'signal' },
+      { id: 'SIG_AN', label: 'AN', position: 'top', slotOffset: 4.82, yOffset: 12, type: 'screw', defaultRole: 'signal' },
+      { id: 'SIG_BR', label: 'BR', position: 'bottom', slotOffset: 4.55, yOffset: 146, type: 'screw', defaultRole: 'signal' },
+      { id: 'SIG_BN', label: 'BN', position: 'bottom', slotOffset: 4.82, yOffset: 146, type: 'screw', defaultRole: 'signal' }
+    ],
+    description: '6-Module Dual Power 100A Automatic Transfer Switch (ATS-GQ2-2P) for switching between City Grid and Generator/Standby.'
   },
 
   // ACCESSORIES
@@ -361,4 +392,3 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
 export function getDeviceDef(typeId: string): DeviceDefinition | undefined {
   return DEVICE_CATALOG.find((d) => d.typeId === typeId);
 }
-

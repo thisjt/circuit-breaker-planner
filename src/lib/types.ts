@@ -32,7 +32,8 @@ export interface TerminalDef {
   label: string;
   sublabel?: string;
   position: TerminalPosition;
-  slotOffset: number; // 0 to (width - 1), horizontal slot offset within breaker
+  slotOffset: number; // horizontal module coordinate from left edge
+  yOffset?: number; // custom vertical offset from top of component in px
   type: 'screw' | 'cage' | 'comb_slot';
   defaultRole?: WireRole;
 }
@@ -45,6 +46,7 @@ export type DeviceCategory =
   | 'spd' 
   | 'terminal' 
   | 'smart' 
+  | 'ats'
   | 'accessory';
 
 export interface DeviceDefinition {
@@ -76,6 +78,11 @@ export interface PlacedDevice {
   curve?: 'B' | 'C' | 'D';
 }
 
+export interface WirePoint {
+  x: number;
+  y: number;
+}
+
 export interface WireConnection {
   id: string;
   sourceDeviceId: string; // device id, or "PE_BAR" or "N_BAR"
@@ -88,6 +95,7 @@ export interface WireConnection {
   standard: WireStandard;
   routingMode?: 'curved' | 'orthogonal';
   customTag?: string;
+  waypoints?: WirePoint[]; // intermediate routing nodes / right-angle waypoints
 }
 
 export interface CombBusbar {
@@ -104,6 +112,7 @@ export interface PanelConfig {
   name: string;
   rows: number; // number of DIN rails
   slotsPerRow: number; // number of 18mm modules per rail
+  railSpacing?: number; // center-to-center distance between DIN rails in px (default 230)
   wireStandard: WireStandard;
   hasGroundBar: boolean;
   hasNeutralBar: boolean;

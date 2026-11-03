@@ -2,13 +2,13 @@
   import { panelStore } from '#lib/state.svelte';
   import { getDeviceDef } from '#lib/catalog';
   import { getGaugeDef, getWireColor } from '#lib/wireStandards';
+  import type { WirePoint } from '#lib/types';
   import DeviceItem from './DeviceItem.svelte';
 
   const MODULE_WIDTH_PX = 44;
   const DEVICE_HEIGHT_PX = 160;
-  const RAIL_SPACING_PX = 230;
   const PADDING_X = 60;
-  const PADDING_Y = 100;
+  const PADDING_Y = 120;
 
   let svgElement: SVGSVGElement | null = $state(null);
   let isPanning = $state(false);
@@ -20,27 +20,34 @@
   let dragHoverRail = $state<number | null>(null);
   let dragHoverSlot = $state<number | null>(null);
 
-  // Sizing
+  // Dragging waypoint state
+  let draggingWaypoint = $state<{ wireId: string; nodeIndex: number } | null>(null);
+
+  // Sizing & Spacing
+  const railSpacing = $derived(panelStore.config.railSpacing || 230);
   const railWidthPx = $derived(panelStore.config.slotsPerRow * MODULE_WIDTH_PX);
   const panelTotalWidth = $derived(railWidthPx + PADDING_X * 2);
   const panelTotalHeight = $derived(
-    panelStore.config.rows * RAIL_SPACING_PX + PADDING_Y * 2
+    panelStore.config.rows * railSpacing + PADDING_Y * 2
   );
 
   // Calculate terminal absolute canvas coordinates
-  function getTerminalCoords(deviceId: string, terminalId: string): { x: number; y: number } | null {
+  function getTerminalCoords(
+    deviceId: string,
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
     if (deviceId === 'PE_BAR') {
       const index = parseInt(terminalId.replace('G_', '')) || 1;
       const x = PADDING_X + (index - 0.5) * (railWidthPx / panelStore.config.groundBarSlots);
-      const y = PADDING_Y - 45;
-      return { x, y };
+      const y = PADDING_Y - 40;
+      return { x, y, position: 'top' };
     }
 
     if (deviceId === 'N_BAR') {
       const index = parseInt(terminalId.replace('N_', '')) || 1;
       const x = PADDING_X + (index - 0.5) * (railWidthPx / panelStore.config.neutralBarSlots);
-      const y = panelTotalHeight - PADDING_Y + 45;
-      return { x, y };
+      const y = panelTotalHeight - PADDING_Y + 44;
+      return { x, y, position: 'bottom' };
     }
 
     const device = panelStore.devices.find((d) => d.id === deviceId);
@@ -51,38 +58,100 @@
     const term = def.terminals.find((t) => t.id === terminalId);
     if (!term) return null;
 
-    const railY = PADDING_Y + device.railIndex * RAIL_SPACING_PX;
+    const railY = PADDING_Y + device.railIndex * railSpacing;
     const devX = PADDING_X + device.slotIndex * MODULE_WIDTH_PX;
-    const termX = devX + (term.slotOffset + 0.5) * MODULE_WIDTH_PX;
-    const termY = railY + (term.position === 'top' ? 12 : DEVICE_HEIGHT_PX - 14);
+    const termX = devX + term.slotOffset * MODULE_WIDTH_PX;
+    const termY = railY + (term.yOffset !== undefined ? term.yOffset : (term.position === 'top' ? 12 : DEVICE_HEIGHT_PX - 14));
 
-    return { x: termX, y: termY };
+    return { x: termX, y: termY, position: term.position };
   }
 
-  // Generate SVG wire path
-  function generateWirePath(x1: number, y1: number, x2: number, y2: number, mode: 'curved' | 'orthogonal' = 'curved'): string {
-    if (mode === 'orthogonal') {
-      // Route through horizontal duct channel
-      const midY = (y1 + y2) / 2;
-      return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+  // Generate SVG wire path with orthogonal right angles and nodes
+  function generateWirePath(
+    src: { x: number; y: number; position?: 'top' | 'bottom' },
+    tgt: { x: number; y: number; position?: 'top' | 'bottom' },
+    waypoints: WirePoint[] = [],
+    mode: 'curved' | 'orthogonal' = 'orthogonal'
+  ): string {
+    const x1 = src.x;
+    const y1 = src.y;
+    const x2 = tgt.x;
+    const y2 = tgt.y;
+
+    if (mode === 'curved') {
+      if (waypoints.length === 0) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const dist = Math.hypot(dx, dy);
+        const sag = Math.min(Math.max(dist * 0.25, 25), 100);
+        const cy1 = y1 > y2 ? y1 - sag : y1 + sag;
+        const cy2 = y2 > y1 ? y2 - sag : y2 + sag;
+        return `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`;
+      } else {
+        let d = `M ${x1} ${y1}`;
+        const pts = [{ x: x1, y: y1 }, ...waypoints, { x: x2, y: y2 }];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const pA = pts[i];
+          const pB = pts[i + 1];
+          const midX = (pA.x + pB.x) / 2;
+          const midY = (pA.y + pB.y) / 2;
+          d += ` Q ${pA.x} ${pA.y}, ${midX} ${midY}`;
+        }
+        d += ` L ${x2} ${y2}`;
+        return d;
+      }
     }
 
-    // Smooth CAD bezier with realistic wire slack
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const dist = Math.hypot(dx, dy);
-    const sag = Math.min(Math.max(dist * 0.25, 25), 100);
+    // ORTHOGONAL (RIGHT ANGLE) ROUTING
+    if (waypoints.length === 0) {
+      if (src.position === 'top' && tgt.position === 'top' && Math.abs(y1 - y2) < 30) {
+        const gutterY = Math.min(y1, y2) - 30;
+        return `M ${x1} ${y1} L ${x1} ${gutterY} L ${x2} ${gutterY} L ${x2} ${y2}`;
+      } else if (src.position === 'bottom' && tgt.position === 'bottom' && Math.abs(y1 - y2) < 30) {
+        const gutterY = Math.max(y1, y2) + 30;
+        return `M ${x1} ${y1} L ${x1} ${gutterY} L ${x2} ${gutterY} L ${x2} ${y2}`;
+      } else {
+        const midY = Math.round((y1 + y2) / 2);
+        return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+      }
+    }
 
-    // If both terminals are at the top or both at the bottom
-    const cy1 = y1 > y2 ? y1 - sag : y1 + sag;
-    const cy2 = y2 > y1 ? y2 - sag : y2 + sag;
+    // WITH USER WAYPOINT NODES
+    // Start -> W0 -> W1 ... -> End
+    // Every waypoint node acts as a right-angle vertex!
+    let path = `M ${x1} ${y1}`;
+    const allPoints = [{ x: x1, y: y1 }, ...waypoints, { x: x2, y: y2 }];
 
-    return `M ${x1} ${y1} C ${x1} ${cy1}, ${x2} ${cy2}, ${x2} ${y2}`;
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const cur = allPoints[i];
+      const nxt = allPoints[i + 1];
+
+      if (cur.x === nxt.x || cur.y === nxt.y) {
+        path += ` L ${nxt.x} ${nxt.y}`;
+      } else {
+        if (i === 0) {
+          // Leaving start terminal: exit vertically first
+          path += ` L ${cur.x} ${nxt.y} L ${nxt.x} ${nxt.y}`;
+        } else if (i === allPoints.length - 2) {
+          // Entering target terminal: enter vertically
+          path += ` L ${nxt.x} ${cur.y} L ${nxt.x} ${nxt.y}`;
+        } else {
+          // Node to node right angle
+          path += ` L ${nxt.x} ${cur.y} L ${nxt.x} ${nxt.y}`;
+        }
+      }
+    }
+
+    return path;
   }
 
   // Pan / Zoom events
   function handleMouseDown(e: MouseEvent) {
-    if (e.button === 1 || (e.button === 0 && e.altKey) || panelStore.activeTool === 'select' && (e.target as HTMLElement).tagName === 'svg') {
+    if (
+      e.button === 1 ||
+      (e.button === 0 && e.altKey) ||
+      (panelStore.activeTool === 'select' && (e.target as HTMLElement).tagName === 'svg')
+    ) {
       isPanning = true;
       panStartX = e.clientX - panelStore.pan.x;
       panStartY = e.clientY - panelStore.pan.y;
@@ -101,6 +170,18 @@
     const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
     const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
 
+    // Dragging waypoint node
+    if (draggingWaypoint) {
+      const snappedX = Math.round(rawX / 5) * 5;
+      const snappedY = Math.round(rawY / 5) * 5;
+      panelStore.updateWireWaypoint(
+        draggingWaypoint.wireId,
+        draggingWaypoint.nodeIndex,
+        { x: snappedX, y: snappedY }
+      );
+      return;
+    }
+
     // Update wire drafting rubber-band
     if (panelStore.wireDraft) {
       panelStore.updateWireDraftPoint(rawX, rawY);
@@ -108,9 +189,14 @@
 
     // Update drag hover slot
     if (draggingDeviceId || panelStore.pendingPlaceTypeId) {
-      const railIdx = Math.floor((rawY - PADDING_Y) / RAIL_SPACING_PX);
+      const railIdx = Math.floor((rawY - PADDING_Y) / railSpacing);
       const slotIdx = Math.floor((rawX - PADDING_X) / MODULE_WIDTH_PX);
-      if (railIdx >= 0 && railIdx < panelStore.config.rows && slotIdx >= 0 && slotIdx < panelStore.config.slotsPerRow) {
+      if (
+        railIdx >= 0 &&
+        railIdx < panelStore.config.rows &&
+        slotIdx >= 0 &&
+        slotIdx < panelStore.config.slotsPerRow
+      ) {
         dragHoverRail = railIdx;
         dragHoverSlot = slotIdx;
       } else {
@@ -122,6 +208,10 @@
 
   function handleMouseUp() {
     isPanning = false;
+
+    if (draggingWaypoint) {
+      draggingWaypoint = null;
+    }
 
     // If placing from catalog
     if (panelStore.pendingPlaceTypeId && dragHoverRail !== null && dragHoverSlot !== null) {
@@ -148,6 +238,7 @@
 
   // Terminal click handler
   function handleTerminalMouseDown(deviceId: string, terminalId: string, e: MouseEvent) {
+    e.stopPropagation();
     const coords = getTerminalCoords(deviceId, terminalId);
     if (!coords) return;
 
@@ -160,9 +251,29 @@
     }
   }
 
+  // Handle double clicking wire to add waypoint node
+  function handleWireDoubleClick(wireId: string, e: MouseEvent) {
+    e.stopPropagation();
+    if (!svgElement) return;
+    const rect = svgElement.getBoundingClientRect();
+    const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
+    const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
+    panelStore.addWireWaypoint(wireId, { x: Math.round(rawX), y: Math.round(rawY) });
+  }
+
+  // Waypoint node mouse down for dragging
+  function handleWaypointMouseDown(wireId: string, nodeIndex: number, e: MouseEvent) {
+    e.stopPropagation();
+    panelStore.select('wire', wireId);
+    draggingWaypoint = { wireId, nodeIndex };
+  }
+
   // Canvas background click cancels wire draft / clears selection
   function handleCanvasClick(e: MouseEvent) {
-    if ((e.target as HTMLElement).tagName === 'svg' || (e.target as HTMLElement).id === 'enclosure-bg') {
+    if (
+      (e.target as HTMLElement).tagName === 'svg' ||
+      (e.target as HTMLElement).id === 'enclosure-bg'
+    ) {
       if (panelStore.wireDraft) {
         panelStore.cancelWireDraft();
       } else {
@@ -196,7 +307,6 @@
         <rect width="100" height="100" fill="url(#smallGrid)" />
         <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#334155" stroke-width="1.2" />
       </pattern>
-      <!-- Drop shadow for breakers -->
       <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
         <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25" />
       </filter>
@@ -218,9 +328,9 @@
       <rect
         id="enclosure-bg"
         x={PADDING_X - 30}
-        y={PADDING_Y - 70}
+        y={PADDING_Y - 95}
         width={railWidthPx + 60}
-        height={panelTotalHeight - PADDING_Y + 60}
+        height={panelTotalHeight - PADDING_Y * 2 + 165}
         rx="14"
         fill="#0f172a"
         stroke="#475569"
@@ -231,7 +341,7 @@
       <!-- Enclosure Title / Header Label -->
       <text
         x={PADDING_X}
-        y={PADDING_Y - 50}
+        y={PADDING_Y - 68}
         font-size="12"
         font-weight="bold"
         fill="#94a3b8"
@@ -242,8 +352,7 @@
 
       <!-- TOP GROUND (PE) BRASS BUSBAR STRIP -->
       {#if panelStore.config.hasGroundBar}
-        <g class="ground-bar" transform="translate({PADDING_X}, {PADDING_Y - 50})">
-          <!-- Brass Bar Base -->
+        <g class="ground-bar" transform="translate({PADDING_X}, {PADDING_Y - 48})">
           <rect
             x="0"
             y="0"
@@ -255,7 +364,7 @@
             stroke-width="1.5"
           />
           <text
-            x="-40"
+            x="-44"
             y="12"
             font-size="10"
             font-weight="bold"
@@ -264,16 +373,17 @@
           >
             PE BAR
           </text>
-          <!-- Ground bar terminal screw holes -->
           {#each Array(panelStore.config.groundBarSlots) as _, idx}
             {@const holeX = (idx + 0.5) * (railWidthPx / panelStore.config.groundBarSlots)}
             <g
               class="terminal-pe cursor-pointer group"
               transform="translate({holeX}, 8)"
               onmousedown={(e) => handleTerminalMouseDown('PE_BAR', `G_${idx + 1}`, e)}
+              onclick={(e) => handleTerminalMouseDown('PE_BAR', `G_${idx + 1}`, e)}
               role="button"
               tabindex="0"
             >
+              <circle r="14" fill="transparent" />
               <circle
                 r="5"
                 fill="#854d0e"
@@ -289,8 +399,7 @@
 
       <!-- BOTTOM NEUTRAL (N) BRASS BUSBAR STRIP -->
       {#if panelStore.config.hasNeutralBar}
-        <g class="neutral-bar" transform="translate({PADDING_X}, {panelTotalHeight - PADDING_Y + 40})">
-          <!-- Brass Bar Base -->
+        <g class="neutral-bar" transform="translate({PADDING_X}, {panelTotalHeight - PADDING_Y + 36})">
           <rect
             x="0"
             y="0"
@@ -302,7 +411,7 @@
             stroke-width="1.5"
           />
           <text
-            x="-40"
+            x="-44"
             y="12"
             font-size="10"
             font-weight="bold"
@@ -311,16 +420,17 @@
           >
             N BAR
           </text>
-          <!-- Neutral bar terminal screw holes -->
           {#each Array(panelStore.config.neutralBarSlots) as _, idx}
             {@const holeX = (idx + 0.5) * (railWidthPx / panelStore.config.neutralBarSlots)}
             <g
               class="terminal-n cursor-pointer group"
               transform="translate({holeX}, 8)"
               onmousedown={(e) => handleTerminalMouseDown('N_BAR', `N_${idx + 1}`, e)}
+              onclick={(e) => handleTerminalMouseDown('N_BAR', `N_${idx + 1}`, e)}
               role="button"
               tabindex="0"
             >
+              <circle r="14" fill="transparent" />
               <circle
                 r="5"
                 fill="#475569"
@@ -334,11 +444,74 @@
         </g>
       {/if}
 
+      <!-- INTER-RAIL GUTTER DIMENSION GUIDES -->
+      {#if panelStore.config.rows > 1}
+        {#each Array(panelStore.config.rows - 1) as _, r}
+          {@const gutterTopY = PADDING_Y + r * railSpacing + DEVICE_HEIGHT_PX}
+          {@const gutterBottomY = PADDING_Y + (r + 1) * railSpacing}
+          {@const gutterHeight = gutterBottomY - gutterTopY}
+          {@const gutterMidY = (gutterTopY + gutterBottomY) / 2}
+
+          <g class="gutter-guide select-none">
+            <!-- Vertical dimension line on left gutter margin -->
+            <line
+              x1={PADDING_X - 26}
+              y1={gutterTopY + 2}
+              x2={PADDING_X - 26}
+              y2={gutterBottomY - 2}
+              stroke="#64748b"
+              stroke-width="1.2"
+              stroke-dasharray="3,3"
+            />
+            <!-- Top tick -->
+            <line
+              x1={PADDING_X - 32}
+              y1={gutterTopY + 2}
+              x2={PADDING_X - 20}
+              y2={gutterTopY + 2}
+              stroke="#64748b"
+              stroke-width="1.5"
+            />
+            <!-- Bottom tick -->
+            <line
+              x1={PADDING_X - 32}
+              y1={gutterBottomY - 2}
+              x2={PADDING_X - 20}
+              y2={gutterBottomY - 2}
+              stroke="#64748b"
+              stroke-width="1.5"
+            />
+
+            <!-- Gutter height readout pill -->
+            <rect
+              x={PADDING_X - 52}
+              y={gutterMidY - 9}
+              width="50"
+              height="18"
+              rx="4"
+              fill="#0f172a"
+              stroke="#334155"
+              stroke-width="1"
+            />
+            <text
+              x={PADDING_X - 27}
+              y={gutterMidY + 3.5}
+              text-anchor="middle"
+              font-size="8.5"
+              font-family="monospace"
+              font-weight="bold"
+              fill="#38bdf8"
+            >
+              {gutterHeight}px
+            </text>
+          </g>
+        {/each}
+      {/if}
+
       <!-- DIN RAILS & SLOTS -->
       {#each Array(panelStore.config.rows) as _, r}
-        {@const railY = PADDING_Y + r * RAIL_SPACING_PX}
+        {@const railY = PADDING_Y + r * railSpacing}
         <g class="din-rail-row">
-          <!-- DIN Rail Steel Channel -->
           <rect
             x={PADDING_X - 10}
             y={railY + DEVICE_HEIGHT_PX * 0.35}
@@ -349,7 +522,6 @@
             stroke="#64748b"
             stroke-width="1.5"
           />
-          <!-- Metal DIN Rail center groove and slots -->
           <line
             x1={PADDING_X - 10}
             y1={railY + DEVICE_HEIGHT_PX * 0.35 + 8}
@@ -367,7 +539,6 @@
             stroke-width="2"
           />
 
-          <!-- Slot grid ticks & numbers -->
           {#each Array(panelStore.config.slotsPerRow) as _, s}
             {@const slotX = PADDING_X + s * MODULE_WIDTH_PX}
             <line
@@ -390,7 +561,6 @@
               {s + 1}
             </text>
           {/each}
-          <!-- End tick of rail -->
           <line
             x1={PADDING_X + railWidthPx}
             y1={railY - 6}
@@ -402,9 +572,9 @@
         </g>
       {/each}
 
-      <!-- PLACED COMB BUSBARS (Manual placement) -->
+      <!-- PLACED COMB BUSBARS -->
       {#each panelStore.busbars as busbar}
-        {@const railY = PADDING_Y + busbar.railIndex * RAIL_SPACING_PX}
+        {@const railY = PADDING_Y + busbar.railIndex * railSpacing}
         {@const barX = PADDING_X + busbar.startSlot * MODULE_WIDTH_PX}
         {@const barWidth = busbar.slotSpan * MODULE_WIDTH_PX}
         {@const barY = busbar.position === 'top' ? railY - 14 : railY + DEVICE_HEIGHT_PX + 4}
@@ -419,7 +589,6 @@
           role="button"
           tabindex="0"
         >
-          <!-- Busbar Insulation Bar -->
           <rect
             x={barX + 2}
             y={barY}
@@ -441,7 +610,6 @@
           >
             {busbar.busbarType} COMB BUSBAR
           </text>
-          <!-- Copper prongs into breaker terminals -->
           {#each Array(busbar.slotSpan) as _, p}
             {@const prongX = barX + (p + 0.5) * MODULE_WIDTH_PX}
             <rect
@@ -460,7 +628,7 @@
       <!-- PLACED DEVICES -->
       {#each panelStore.devices as device}
         {@const devX = PADDING_X + device.slotIndex * MODULE_WIDTH_PX}
-        {@const devY = PADDING_Y + device.railIndex * RAIL_SPACING_PX}
+        {@const devY = PADDING_Y + device.railIndex * railSpacing}
         <DeviceItem
           {device}
           x={devX}
@@ -478,7 +646,7 @@
         {#if src && tgt}
           {@const gauge = getGaugeDef(wire.gaugeMetric)}
           {@const isSelected = panelStore.selectedType === 'wire' && panelStore.selectedId === wire.id}
-          {@const pathD = generateWirePath(src.x, src.y, tgt.x, tgt.y, wire.routingMode || 'curved')}
+          {@const pathD = generateWirePath(src, tgt, wire.waypoints || [], wire.routingMode || 'orthogonal')}
 
           <g
             class="wire-group cursor-pointer group"
@@ -486,6 +654,7 @@
               e.stopPropagation();
               panelStore.select('wire', wire.id);
             }}
+            ondblclick={(e) => handleWireDoubleClick(wire.id, e)}
             role="button"
             tabindex="0"
           >
@@ -494,9 +663,10 @@
               d={pathD}
               fill="none"
               stroke={isSelected ? '#38bdf8' : 'transparent'}
-              stroke-width={gauge.renderWidth + 6}
+              stroke-width={gauge.renderWidth + 7}
               stroke-linecap="round"
-              class="group-hover:stroke-blue-400 group-hover:stroke-opacity-50 transition-all"
+              stroke-linejoin="round"
+              class="group-hover:stroke-blue-400/50 transition-all"
             />
 
             <!-- Wire Outer Core -->
@@ -506,6 +676,7 @@
               stroke={wire.color}
               stroke-width={gauge.renderWidth}
               stroke-linecap="round"
+              stroke-linejoin="round"
               class="filter drop-shadow"
             />
 
@@ -518,46 +689,78 @@
                 stroke-width={gauge.renderWidth * 0.4}
                 stroke-dasharray="10,10"
                 stroke-linecap="round"
+                stroke-linejoin="round"
               />
             {/if}
 
             <!-- Source & Target Terminal Ring Caps -->
-            <circle cx={src.x} cy={src.y} r="3" fill="#ffffff" stroke={wire.color} stroke-width="1.5" />
-            <circle cx={tgt.x} cy={tgt.y} r="3" fill="#ffffff" stroke={wire.color} stroke-width="1.5" />
+            <circle cx={src.x} cy={src.y} r="3.5" fill="#ffffff" stroke={wire.color} stroke-width="1.5" />
+            <circle cx={tgt.x} cy={tgt.y} r="3.5" fill="#ffffff" stroke={wire.color} stroke-width="1.5" />
+
+            <!-- DRAGGABLE WAYPOINT NODES (When wire is selected) -->
+            {#if isSelected}
+              {#each wire.waypoints || [] as wp, wpIdx}
+                <g
+                  class="waypoint-handle cursor-move"
+                  transform="translate({wp.x}, {wp.y})"
+                  onmousedown={(e) => handleWaypointMouseDown(wire.id, wpIdx, e)}
+                  oncontextmenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    panelStore.removeWireWaypoint(wire.id, wpIdx);
+                  }}
+                  role="button"
+                  tabindex="0"
+                >
+                  <!-- Invisible generous hit area -->
+                  <circle r="14" fill="transparent" />
+                  <!-- Outer white circle with blue ring -->
+                  <circle
+                    r="6.5"
+                    fill="#ffffff"
+                    stroke="#2563eb"
+                    stroke-width="2.5"
+                    class="hover:scale-125 filter drop-shadow transition-transform"
+                  />
+                  <circle r="2.5" fill="#3b82f6" />
+                </g>
+              {/each}
+            {/if}
           </g>
         {/if}
       {/each}
 
-      <!-- RUBBERBAND WIRE DRAFT (Active mouse connection) -->
+      <!-- RUBBERBAND WIRE DRAFT (Active mouse connection - Pointer Events None) -->
       {#if panelStore.wireDraft}
         {@const srcCoords = getTerminalCoords(panelStore.wireDraft.sourceDeviceId, panelStore.wireDraft.sourceTerminalId)}
         {#if srcCoords}
           {@const draftGauge = getGaugeDef(panelStore.activeWireGauge)}
           {@const draftColor = getWireColor(panelStore.activeWireRole, panelStore.config.wireStandard)}
           {@const draftPath = generateWirePath(
-            srcCoords.x,
-            srcCoords.y,
-            panelStore.wireDraft.currentX,
-            panelStore.wireDraft.currentY,
+            srcCoords,
+            { x: panelStore.wireDraft.currentX, y: panelStore.wireDraft.currentY },
+            [],
             panelStore.activeWireRouting
           )}
-          <path
-            d={draftPath}
-            fill="none"
-            stroke={draftColor.hex}
-            stroke-width={draftGauge.renderWidth}
-            stroke-dasharray="6,4"
-            class="animate-pulse"
-          />
-          <circle cx={srcCoords.x} cy={srcCoords.y} r="4" fill="#3b82f6" />
-          <circle cx={panelStore.wireDraft.currentX} cy={panelStore.wireDraft.currentY} r="5" fill="#60a5fa" />
+          <g class="pointer-events-none" pointer-events="none">
+            <path
+              d={draftPath}
+              fill="none"
+              stroke={draftColor.hex}
+              stroke-width={draftGauge.renderWidth}
+              stroke-dasharray="6,4"
+              class="animate-pulse"
+            />
+            <circle cx={srcCoords.x} cy={srcCoords.y} r="4" fill="#3b82f6" />
+            <circle cx={panelStore.wireDraft.currentX} cy={panelStore.wireDraft.currentY} r="5" fill="#60a5fa" />
+          </g>
         {/if}
       {/if}
 
-      <!-- DROP TARGET HIGHLIGHT (When hovering over a slot) -->
+      <!-- DROP TARGET HIGHLIGHT -->
       {#if dragHoverRail !== null && dragHoverSlot !== null}
         {@const hoverX = PADDING_X + dragHoverSlot * MODULE_WIDTH_PX}
-        {@const hoverY = PADDING_Y + dragHoverRail * RAIL_SPACING_PX}
+        {@const hoverY = PADDING_Y + dragHoverRail * railSpacing}
         <rect
           x={hoverX}
           y={hoverY}
@@ -606,4 +809,3 @@
     </button>
   </div>
 </div>
-

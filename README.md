@@ -21,6 +21,7 @@ Built with **SvelteKit (Svelte 5 Runes)**, **TypeScript**, **Tailwind CSS**, and
   - Type 2 Surge Protection Devices (SPDs).
   - Feed-through & 1-in 4-out Distribution Terminal blocks.
   - Smart DIN Relays (Shelly) & Digital MID Energy Meters.
+  - Dual Power Automatic Transfer Switches (ATS 100A, 6-module with tiered City/Generator/Load terminals).
   - Blanking plates.
 - **Wiring & Interconnection Engine**:
   - Interactive terminal click-to-connect rubber-band drafting.

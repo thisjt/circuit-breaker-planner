@@ -34,6 +34,7 @@ Users can define panel specifications (DIN rails, rows, and module widths), drag
 1. **Enclosure Sizing**:
    - Number of horizontal DIN rail tiers/rows (e.g., 1 to 6 rows).
    - Module width per rail, measured in standard DIN units (**1 TE / Module = 18 mm**; typical panels range from 4 to 24 modules per row).
+   - Configurable DIN rail vertical spacing / distance between rails (180px–380px, adjusting wire gutter clearance from compact domestic boxes to deep industrial enclosures).
    - Presets for common consumer units (e.g., 1-Row 8M/12M, 2-Row 24M, 3-Row 36M, 4-Row 48M, custom).
 2. **Wire Gutters & Accessories**:
    - Configurable wiring gutters (top, bottom, and side duct spacing).
@@ -53,6 +54,7 @@ The application provides a library of DIN rail-mountable devices with accurate m
 | **Surge Protection** | Type 2 / Type 1+2 SPD (1P+N, 3P+N) | 1M–4M | L1, L2, L3, N, Earth |
 | **Terminal Blocks** | WAGO DIN mounts, 1-in 4-out distribution blocks | 0.5M–2M | Multiple grouped in/out terminals |
 | **Smart / Aux Devices** | Energy Meters (MID), Shelly DIN relays, Contactors, Bell Transformers | 1M–3M | Control terminals (A1/A2), CT clamp inputs, load terminals |
+| **Transfer Switches (ATS)** | Dual Power Automatic Transfer Switch (ATS-GQ2-2P, 100A 220V) | 6M | Top: Main Power In (L, N); Bottom Tier 1: Standby Power (L, N); Bottom Tier 2: ATS Output (L, N); Aux Signals (AR, AN, BR, BN) |
 | **Accessories** | Blanking plates, Rail separators/dividers | 0.5M, 1M | No terminals (spacers) |
 
 #### Device Visual Representation & Properties:

@@ -6,6 +6,7 @@ import type {
   PlacedDevice,
   TerminalPosition,
   WireConnection,
+  WirePoint,
   WireRole,
   WireStandard
 } from './types';
@@ -25,6 +26,7 @@ export class PanelState {
     name: 'Residential Distribution Board',
     rows: 2,
     slotsPerRow: 12,
+    railSpacing: 230,
     wireStandard: 'PEC',
     hasGroundBar: true,
     hasNeutralBar: true,
@@ -44,7 +46,7 @@ export class PanelState {
 
   activeWireRole = $state<WireRole>('line1');
   activeWireGauge = $state<number>(2.5); // 2.5 mm^2
-  activeWireRouting = $state<'curved' | 'orthogonal'>('curved');
+  activeWireRouting = $state<'curved' | 'orthogonal'>('orthogonal');
   activeBusbarType = $state<'1P' | '1P+N' | '2P' | '3P'>('1P');
 
   // Interactive wire drafting
@@ -118,7 +120,13 @@ export class PanelState {
       const stored = localStorage.getItem('circuit_breaker_planner_data');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed.config) this.config = parsed.config;
+        if (parsed.config) {
+          this.config = {
+            ...this.config,
+            ...parsed.config,
+            railSpacing: parsed.config.railSpacing || 230
+          };
+        }
         if (parsed.devices) this.devices = parsed.devices;
         if (parsed.wires) this.wires = parsed.wires;
         if (parsed.busbars) this.busbars = parsed.busbars;
@@ -317,7 +325,8 @@ export class PanelState {
       color: colorDef.hex,
       gaugeMetric: this.activeWireGauge,
       standard: this.config.wireStandard,
-      routingMode: this.activeWireRouting
+      routingMode: this.activeWireRouting,
+      waypoints: []
     };
 
     this.wires.push(newWire);
@@ -337,6 +346,45 @@ export class PanelState {
     if (this.selectedId === wireId) {
       this.clearSelection();
     }
+    this.saveToLocalStorage();
+  }
+
+  // Waypoints / Node Routing Management
+  addWireWaypoint(wireId: string, point: WirePoint, index?: number) {
+    const wire = this.wires.find((w) => w.id === wireId);
+    if (!wire) return;
+    this.saveHistory();
+    if (!wire.waypoints) wire.waypoints = [];
+    const roundedPoint = { x: Math.round(point.x), y: Math.round(point.y) };
+    if (typeof index === 'number' && index >= 0 && index <= wire.waypoints.length) {
+      wire.waypoints.splice(index, 0, roundedPoint);
+    } else {
+      wire.waypoints.push(roundedPoint);
+    }
+    this.saveToLocalStorage();
+  }
+
+  updateWireWaypoint(wireId: string, nodeIndex: number, newPoint: WirePoint) {
+    const wire = this.wires.find((w) => w.id === wireId);
+    if (!wire || !wire.waypoints || !wire.waypoints[nodeIndex]) return;
+    wire.waypoints[nodeIndex].x = Math.round(newPoint.x);
+    wire.waypoints[nodeIndex].y = Math.round(newPoint.y);
+    this.saveToLocalStorage();
+  }
+
+  removeWireWaypoint(wireId: string, nodeIndex: number) {
+    const wire = this.wires.find((w) => w.id === wireId);
+    if (!wire || !wire.waypoints) return;
+    this.saveHistory();
+    wire.waypoints.splice(nodeIndex, 1);
+    this.saveToLocalStorage();
+  }
+
+  clearWireWaypoints(wireId: string) {
+    const wire = this.wires.find((w) => w.id === wireId);
+    if (!wire) return;
+    this.saveHistory();
+    wire.waypoints = [];
     this.saveToLocalStorage();
   }
 
@@ -397,6 +445,17 @@ export class PanelState {
         break;
     }
     this.saveToLocalStorage();
+  }
+
+  setRailSpacing(spacing: number) {
+    this.saveHistory();
+    this.config.railSpacing = Math.max(170, Math.min(450, Math.round(spacing)));
+    this.saveToLocalStorage();
+  }
+
+  adjustRailSpacing(delta: number) {
+    const current = this.config.railSpacing || 230;
+    this.setRailSpacing(current + delta);
   }
 
   clearProject() {
@@ -510,7 +569,8 @@ export class PanelState {
         color: '#111827',
         gaugeMetric: 10.0,
         standard: 'PEC',
-        routingMode: 'curved'
+        routingMode: 'orthogonal',
+        waypoints: [{ x: 120, y: 285 }]
       },
       {
         id: 'wire_main_to_spd_n',
@@ -522,7 +582,8 @@ export class PanelState {
         color: '#dc2626',
         gaugeMetric: 10.0,
         standard: 'PEC',
-        routingMode: 'curved'
+        routingMode: 'orthogonal',
+        waypoints: [{ x: 145, y: 295 }]
       },
       {
         id: 'wire_spd_pe',
@@ -534,7 +595,8 @@ export class PanelState {
         color: '#16a34a',
         gaugeMetric: 10.0,
         standard: 'PEC',
-        routingMode: 'curved'
+        routingMode: 'orthogonal',
+        waypoints: [{ x: 80, y: 275 }, { x: 80, y: 55 }]
       },
       {
         id: 'wire_main_to_rcd_l',
@@ -546,7 +608,8 @@ export class PanelState {
         color: '#111827',
         gaugeMetric: 6.0,
         standard: 'PEC',
-        routingMode: 'curved'
+        routingMode: 'orthogonal',
+        waypoints: [{ x: 82, y: 270 }, { x: 300, y: 270 }]
       },
       {
         id: 'wire_main_to_rcd_n',
@@ -558,7 +621,8 @@ export class PanelState {
         color: '#dc2626',
         gaugeMetric: 6.0,
         standard: 'PEC',
-        routingMode: 'curved'
+        routingMode: 'orthogonal',
+        waypoints: [{ x: 126, y: 278 }, { x: 345, y: 278 }]
       },
       {
         id: 'wire_rcd_to_busbar',
@@ -570,7 +634,8 @@ export class PanelState {
         color: '#111827',
         gaugeMetric: 4.0,
         standard: 'PEC',
-        routingMode: 'curved'
+        routingMode: 'orthogonal',
+        waypoints: [{ x: 300, y: 290 }, { x: 82, y: 290 }]
       }
     ];
 
