@@ -330,22 +330,76 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     description: 'Wi-Fi/LAN smart dry contact DIN-mounted relay.'
   },
   {
+    typeId: 'energy-meter-2p',
+    name: 'Digital Energy Meter 2P (2-Module)',
+    category: 'smart',
+    widthModules: 2,
+    poles: 2,
+    ratedAmps: 63,
+    colorAccent: '#10b981', // Emerald green
+    terminals: [
+      { id: 'L_IN', label: '1 (L / L1 In)', position: 'top', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: '3 (N / L2 In)', position: 'top', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: '2 (L / L1 Out)', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: '4 (N / L2 Pass)', position: 'bottom', slotOffset: 1.5, type: 'screw', defaultRole: 'line2' }
+    ],
+    description: '2-Module (36mm) 63A Dual-Line Digital Energy Meter with backlit LCD. Features direct Line 1 load metering and integrated Neutral / Line 2 solid passthrough, ideal for 230V Line-to-Line (PH 2-wire Delta) and Line-to-Neutral systems.'
+  },
+  {
+    typeId: 'energy-meter-2p-1m',
+    name: 'Digital Energy Meter 2P (1-Module Compact)',
+    category: 'smart',
+    widthModules: 1,
+    poles: 2,
+    ratedAmps: 63,
+    colorAccent: '#10b981',
+    terminals: [
+      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: '3 (L2/N)', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'line2' },
+      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: '4 (Pass)', position: 'bottom', slotOffset: 0.72, type: 'screw', defaultRole: 'line2' }
+    ],
+    description: '1-Module (18mm) ultra-compact 2-Pole 63A Digital Energy Meter with LCD. 2-In / 2-Out with integrated Neutral / Line 2 passthrough (Sinotimer / Tomzn DDS6619 / DDS238 style).'
+  },
+  {
     typeId: 'energy-meter-1m',
-    name: 'Digital Energy Meter (MID)',
+    name: 'Digital Energy Meter 1P (Compact)',
     category: 'smart',
     widthModules: 1,
     poles: 1,
     ratedAmps: 45,
     colorAccent: '#10b981',
     terminals: [
-      { id: 'L_IN', label: 'L In', position: 'top', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
-      { id: 'N_IN', label: 'N', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' },
-      { id: 'L_OUT', label: 'L Out', position: 'bottom', slotOffset: 0.5, type: 'screw', defaultRole: 'line1' }
+      { id: 'L_IN', label: '1 (L In)', position: 'top', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_IN', label: '3 (N In)', position: 'top', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' },
+      { id: 'L_OUT', label: '2 (L Out)', position: 'bottom', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: 'N_OUT', label: '4 (N Pass)', position: 'bottom', slotOffset: 0.72, type: 'screw', defaultRole: 'neutral' }
     ],
-    description: 'Direct reading single phase kWh energy monitor.'
+    description: '1-Module (18mm) compact direct reading single-phase kWh energy monitor with Neutral passthrough.'
   },
 
-  // TRANSFER SWITCHES (ATS)
+  // TRANSFER SWITCHES (ATS & MTS)
+  {
+    typeId: 'mts-2p-63a',
+    name: 'Manual Transfer Switch (MTS) 63A',
+    category: 'ats',
+    widthModules: 2,
+    poles: 2,
+    ratedAmps: 63,
+    colorAccent: '#2563eb', // Blue logo / branding accent
+    terminals: [
+      // Top Terminals: Load Output
+      { id: '1', label: '1 (Load L)', position: 'top', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: '5', label: '5 (Load N)', position: 'top', slotOffset: 1.28, type: 'screw', defaultRole: 'line2' },
+
+      // Bottom Terminals: Dual Power Sources (Grid on 2 & 6; Generator on 4 & 8)
+      { id: '2', label: '2 (Grid L)', position: 'bottom', slotOffset: 0.28, type: 'screw', defaultRole: 'line1' },
+      { id: '4', label: '4 (Gen L)', position: 'bottom', slotOffset: 0.72, type: 'screw', defaultRole: 'line1' },
+      { id: '6', label: '6 (Grid N)', position: 'bottom', slotOffset: 1.28, type: 'screw', defaultRole: 'line2' },
+      { id: '8', label: '8 (Gen N)', position: 'bottom', slotOffset: 1.72, type: 'screw', defaultRole: 'line2' }
+    ],
+    description: '2-Module 63A 400V 3-Position (I-0-II) Manual Transfer Switch (Taxnele TX219G). Toggles load between Utility Grid (Terminals 2 & 6) and Generator/Inverter (Terminals 4 & 8).'
+  },
   {
     typeId: 'ats-2p-100a',
     name: 'Automatic Transfer Switch (ATS) 100A',

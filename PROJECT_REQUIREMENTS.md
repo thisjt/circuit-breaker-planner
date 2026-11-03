@@ -53,8 +53,8 @@ The application provides a library of DIN rail-mountable devices with accurate m
 | **RCBO** | Compact 1-Pole+N (1M) or Standard 2-Pole (2M) | 1M / 2M | Line/Neutral In, Line/Neutral Out, Functional Earth |
 | **Surge Protection** | Type 2 / Type 1+2 SPD (1P+N, 3P+N) | 1M–4M | L1, L2, L3, N, Earth |
 | **Terminal Blocks** | WAGO DIN mounts, 1-in 4-out distribution blocks | 0.5M–2M | Multiple grouped in/out terminals |
-| **Smart / Aux Devices** | Energy Meters (MID), Shelly DIN relays, Contactors, Bell Transformers | 1M–3M | Control terminals (A1/A2), CT clamp inputs, load terminals |
-| **Transfer Switches (ATS)** | Dual Power Automatic Transfer Switch (ATS-GQ2-2P, 100A 220V) | 6M | Top: Main Power In (L, N); Bottom Tier 1: Standby Power (L, N); Bottom Tier 2: ATS Output (L, N); Aux Signals (AR, AN, BR, BN) |
+| **Smart / Aux Devices** | Digital Energy Meters 2P (2-In / 2-Out with Passthrough: 2-Module 36mm & 1-Module 18mm Compact, 63A), Shelly DIN relays, Contactors, Bell Transformers | 1M–3M | Control terminals (A1/A2), Dual-line in/out passthrough, load terminals |
+| **Transfer Switches (ATS/MTS)** | Automatic Transfer Switch (ATS-GQ2-2P, 100A 220V, 6M) & Manual Transfer Switch (MTS Taxnele TX219G, 63A 400V 3-Position I-0-II, 2M) | 2M, 6M | ATS: Top Main In, Bottom Tier 1 Standby In, Bottom Tier 2 ATS Out, Aux Signals; MTS: Top Load Out (1 & 5), Bottom Grid In (2 & 6) & Gen In (4 & 8) |
 | **Accessories** | Blanking plates, Rail separators/dividers | 0.5M, 1M | No terminals (spacers) |
 
 #### Device Visual Representation & Properties:

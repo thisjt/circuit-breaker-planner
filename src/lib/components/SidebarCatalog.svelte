@@ -25,8 +25,8 @@
       { id: "mcb", label: "MCB Breakers", icon: SlidersHorizontal },
       { id: "spd", label: "Surge (SPD)", icon: Zap },
       { id: "terminal", label: "Terminals", icon: Grid },
-      { id: "smart", label: "Smart Relays", icon: Cpu },
-      { id: "ats", label: "Transfer Switch (ATS)", icon: Power },
+      { id: "smart", label: "Smart Relays & Meters", icon: Cpu },
+      { id: "ats", label: "Transfer Switches (ATS/MTS)", icon: Power },
     ];
 
   const filteredDevices = $derived(

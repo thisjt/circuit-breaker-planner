@@ -20,8 +20,8 @@ Built with **SvelteKit (Svelte 5 Runes)**, **TypeScript**, **Tailwind CSS**, and
   - Miniature Circuit Breakers (MCBs: 1P, 2P, 3P with B/C/D curves and 6A–63A ratings).
   - Type 2 Surge Protection Devices (SPDs).
   - Feed-through & 1-in 4-out Distribution Terminal blocks.
-  - Smart DIN Relays (Shelly) & Digital MID Energy Meters.
-  - Dual Power Automatic Transfer Switches (ATS 100A, 6-module with tiered City/Generator/Load terminals).
+  - Smart DIN Relays (Shelly) & Digital Multifunction Energy Meters (1P and 2P 2-In / 2-Out with Neutral/L2 Passthrough).
+  - Transfer Switches: Dual Power Automatic Transfer Switches (ATS 100A, 6-module) & Manual Transfer Switches (MTS Taxnele TX219G 63A 400V, 2-module 3-position I-0-II changeover).
   - Blanking plates.
 - **Wiring & Interconnection Engine**:
   - Interactive terminal click-to-connect rubber-band drafting.

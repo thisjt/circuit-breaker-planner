@@ -90,7 +90,7 @@
     {/each}
   {/if}
 
-  {#if def?.category === "ats"}
+  {#if def?.typeId === "ats-2p-100a"}
     <!-- ATS (Automatic Transfer Switch) Specialized Rendering -->
     <!-- Top & Bottom high-current isolation barriers between poles -->
     <rect x="0" y="0" width="3" height="34" fill="#cbd5e1" />
@@ -619,6 +619,131 @@
         >Passive Out</text
       >
     </g>
+  {:else if def?.typeId === "mts-2p-63a"}
+    <!-- TAXNELE TX219G 63A 2-Pole Manual Transfer Switch (MTS) -->
+    <!-- Center module divider lines -->
+    <line x1="44" y1="2" x2="44" y2="32" stroke="#cbd5e1" stroke-width="1.5" />
+    <line x1="44" y1="126" x2="44" y2="158" stroke="#cbd5e1" stroke-width="1.5" />
+
+    <!-- Terminal cavity recesses -->
+    <rect x="4" y="2" width="36" height="28" rx="2" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="48" y="2" width="36" height="28" rx="2" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="4" y="130" width="36" height="28" rx="2" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="48" y="130" width="36" height="28" rx="2" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.8" />
+
+    <!-- Top Blank Dummy Plugs (Terminal 3 and Terminal 7 are sealed with black caps) -->
+    <circle cx="31.68" cy="12" r="5.5" fill="#1e293b" stroke="#0f172a" stroke-width="0.8" />
+    <circle cx="31.68" cy="12" r="4" fill="#0f172a" />
+    <circle cx="75.68" cy="12" r="5.5" fill="#1e293b" stroke="#0f172a" stroke-width="0.8" />
+    <circle cx="75.68" cy="12" r="4" fill="#0f172a" />
+
+    <!-- Top Terminal Silkscreen Numbers -->
+    <text x="12.32" y="27" font-size="7" font-weight="bold" fill="#334155" text-anchor="middle">1</text>
+    <text x="31.68" y="27" font-size="7" font-weight="bold" fill="#64748b" text-anchor="middle">3</text>
+    <text x="56.32" y="27" font-size="7" font-weight="bold" fill="#334155" text-anchor="middle">5</text>
+    <text x="75.68" y="27" font-size="7" font-weight="bold" fill="#64748b" text-anchor="middle">7</text>
+
+    <!-- Bottom Terminal Silkscreen Numbers -->
+    <text x="12.32" y="136" font-size="7" font-weight="bold" fill="#334155" text-anchor="middle">2</text>
+    <text x="31.68" y="136" font-size="7" font-weight="bold" fill="#334155" text-anchor="middle">4</text>
+    <text x="56.32" y="136" font-size="7" font-weight="bold" fill="#334155" text-anchor="middle">6</text>
+    <text x="75.68" y="136" font-size="7" font-weight="bold" fill="#334155" text-anchor="middle">8</text>
+
+    <!-- Raised 45mm DIN Faceplate -->
+    <rect
+      x="3"
+      y="32"
+      width={totalWidth - 6}
+      height="94"
+      rx="3"
+      fill="#ffffff"
+      stroke="#cbd5e1"
+      stroke-width="1"
+    />
+
+    <!-- Brand Header: TAXNELE with 4 blue horizontal lines -->
+    <text
+      x="6"
+      y="43"
+      font-size="7"
+      font-weight="900"
+      font-style="italic"
+      fill="#2563eb"
+      font-family="system-ui, sans-serif"
+    >
+      TAXNELE
+    </text>
+    <line x1="44" y1="38" x2="82" y2="38" stroke="#3b82f6" stroke-width="0.8" />
+    <line x1="44" y1="40" x2="82" y2="40" stroke="#3b82f6" stroke-width="0.8" />
+    <line x1="44" y1="42" x2="82" y2="42" stroke="#3b82f6" stroke-width="0.8" />
+    <line x1="44" y1="44" x2="82" y2="44" stroke="#3b82f6" stroke-width="0.8" />
+
+    <!-- Model & Rating Info -->
+    <text x="6" y="52" font-size="6" font-weight="bold" fill="#0f172a" font-family="system-ui, sans-serif">
+      TX219G
+    </text>
+    <text x="27" y="52" font-size="7.5" font-weight="900" fill="#0f172a" font-family="system-ui, sans-serif">
+      63A
+    </text>
+    <text x="6" y="58" font-size="4.5" fill="#475569" font-family="system-ui, sans-serif">
+      400V~
+    </text>
+    <text x="6" y="63" font-size="4.5" fill="#475569" font-family="system-ui, sans-serif">
+      50/60Hz
+    </text>
+    <text x="26" y="62" font-size="7" font-weight="900" fill="#0f172a" font-family="system-ui, sans-serif">
+      CE
+    </text>
+
+    <!-- Schematic Symbol on the right side of the faceplate -->
+    <g class="schematic" transform="translate(48, 46)">
+      <!-- Top contact terminals 1 and 5 -->
+      <circle cx="5" cy="4" r="1.5" fill="none" stroke="#0f172a" stroke-width="0.7" />
+      <text x="5" y="2" font-size="4" fill="#0f172a" text-anchor="middle">1</text>
+      <circle cx="25" cy="4" r="1.5" fill="none" stroke="#0f172a" stroke-width="0.7" />
+      <text x="25" y="2" font-size="4" fill="#0f172a" text-anchor="middle">5</text>
+
+      <!-- Switch blades -->
+      <line x1="5" y1="5.5" x2="4" y2="12" stroke="#0f172a" stroke-width="0.8" />
+      <line x1="25" y1="5.5" x2="24" y2="12" stroke="#0f172a" stroke-width="0.8" />
+      <!-- Mechanical tie line -->
+      <line x1="5" y1="9" x2="25" y2="9" stroke="#0f172a" stroke-width="0.6" stroke-dasharray="1.5,1.5" />
+
+      <!-- Position indicators I and II -->
+      <text x="1" y="9.5" font-size="4" font-weight="bold" fill="#0f172a">I</text>
+      <text x="31" y="9.5" font-size="4" font-weight="bold" fill="#0f172a">II</text>
+
+      <!-- Bottom contacts 2, 4, 6, 8 -->
+      <text x="1" y="16" font-size="4" fill="#0f172a">2</text>
+      <text x="7" y="16" font-size="4" fill="#0f172a">4</text>
+      <text x="21" y="16" font-size="4" fill="#0f172a">6</text>
+      <text x="27" y="16" font-size="4" fill="#0f172a">8</text>
+    </g>
+
+    <!-- Toggle Track Recesses (Pole 1 & Pole 2) -->
+    <rect x="7" y="66" width="34" height="38" rx="2" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.8" />
+    <rect x="47" y="66" width="34" height="38" rx="2" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="0.8" />
+
+    <!-- Position labels inside track -->
+    <text x="24" y="74" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#64748b">I</text>
+    <text x="24" y="100" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#64748b">II</text>
+    <text x="64" y="74" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#64748b">I</text>
+    <text x="64" y="100" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#64748b">II</text>
+
+    <!-- White Breaker Levers -->
+    <rect x="12" y="76" width="24" height="18" rx="2" fill="#ffffff" stroke="#94a3b8" stroke-width="0.8" />
+    <rect x="52" y="76" width="24" height="18" rx="2" fill="#ffffff" stroke="#94a3b8" stroke-width="0.8" />
+
+    <!-- Horizontal White Interlock Handle Tie Bar linking both poles -->
+    <rect x="4" y="80" width="80" height="10" rx="2" fill="#f8fafc" stroke="#64748b" stroke-width="1" class="filter drop-shadow-sm" />
+    <!-- Center Grip Clip -->
+    <rect x="34" y="79" width="20" height="12" rx="2" fill="#ffffff" stroke="#94a3b8" stroke-width="0.8" />
+    <line x1="41" y1="81" x2="41" y2="89" stroke="#cbd5e1" stroke-width="0.8" />
+    <line x1="44" y1="81" x2="44" y2="89" stroke="#cbd5e1" stroke-width="0.8" />
+    <line x1="47" y1="81" x2="47" y2="89" stroke="#cbd5e1" stroke-width="0.8" />
+
+    <!-- Center vertical dividing seam on bottom faceplate -->
+    <line x1="44" y1="105" x2="44" y2="125" stroke="#cbd5e1" stroke-width="1" />
   {:else}
     <!-- Recessed Front Faceplate (standard 45mm DIN opening) -->
     <rect
@@ -641,8 +766,175 @@
       fill={def?.colorAccent || "#64748b"}
     />
 
-    <!-- Breaker Ratings & Labels -->
-    {#if def?.category !== "accessory"}
+    <!-- Breaker Ratings & Labels / Digital Display -->
+    {#if def?.typeId.includes("energy-meter")}
+      <!-- Digital Energy Meter with LCD Display -->
+      <text
+        x={totalWidth / 2}
+        y={heightPx * 0.29}
+        text-anchor="middle"
+        font-size={totalWidth < 50 ? "8" : "9.5"}
+        font-weight="bold"
+        fill="#0f172a"
+        class="font-sans"
+      >
+        {device.customLabel || def.name.split(" ")[0]}
+      </text>
+
+      <text
+        x={totalWidth / 2}
+        y={heightPx * 0.35}
+        text-anchor="middle"
+        font-size="6.5"
+        fill="#64748b"
+        font-family="monospace"
+        font-weight="bold"
+      >
+        230V {def.ratedAmps}A 50/60Hz
+      </text>
+
+      <!-- Digital Backlit LCD Panel -->
+      {#if device.widthModules >= 2}
+        <!-- 2-Module LCD Display -->
+        <rect
+          x="10"
+          y={heightPx * 0.38}
+          width={totalWidth - 20}
+          height="42"
+          rx="3"
+          fill="#090d16"
+          stroke="#1e293b"
+          stroke-width="1.2"
+        />
+        <rect
+          x="12"
+          y={heightPx * 0.38 + 2}
+          width={totalWidth - 24}
+          height="38"
+          rx="1.5"
+          fill="#022c22"
+        />
+        <!-- LCD Digits -->
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.38 + 13}
+          text-anchor="middle"
+          font-size="6.5"
+          font-family="monospace"
+          font-weight="bold"
+          fill="#34d399"
+        >
+          230.2 V   16.4 A
+        </text>
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.38 + 24}
+          text-anchor="middle"
+          font-size="6.5"
+          font-family="monospace"
+          fill="#38bdf8"
+        >
+          3.78 kW   50.0 Hz
+        </text>
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.38 + 35}
+          text-anchor="middle"
+          font-size="7.5"
+          font-family="monospace"
+          font-weight="900"
+          fill="#a7f3d0"
+        >
+          [001428.6 kWh]
+        </text>
+
+        <!-- Controls below LCD -->
+        <circle cx="24" cy={heightPx * 0.69} r="2.5" fill="#ef4444" stroke="#991b1b" stroke-width="0.5" />
+        <text x="30" y={heightPx * 0.69 + 2} font-size="5" fill="#64748b">Pulse</text>
+
+        <rect x={totalWidth - 34} y={heightPx * 0.66} width="16" height="7" rx="1.5" fill="#334155" stroke="#475569" stroke-width="0.5" />
+        <text x={totalWidth - 26} y={heightPx * 0.66 + 5.5} font-size="5" font-weight="bold" fill="#cbd5e1" text-anchor="middle">Set</text>
+
+        <!-- Passthrough Indicator Schematic -->
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.74}
+          text-anchor="middle"
+          font-size="5.5"
+          font-weight="bold"
+          fill="#059669"
+        >
+          L1: Metered • L2/N: Pass-thru
+        </text>
+      {:else}
+        <!-- 1-Module Compact LCD Display (18mm 2-Pole Meter) -->
+        <rect
+          x="4"
+          y={heightPx * 0.38}
+          width={totalWidth - 8}
+          height="40"
+          rx="2"
+          fill="#090d16"
+          stroke="#1e293b"
+          stroke-width="1"
+        />
+        <rect
+          x="5"
+          y={heightPx * 0.38 + 1.5}
+          width={totalWidth - 10}
+          height="37"
+          rx="1"
+          fill="#022c22"
+        />
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.38 + 11}
+          text-anchor="middle"
+          font-size="5"
+          font-family="monospace"
+          font-weight="bold"
+          fill="#34d399"
+        >
+          230V 16A
+        </text>
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.38 + 20}
+          text-anchor="middle"
+          font-size="5"
+          font-family="monospace"
+          fill="#38bdf8"
+        >
+          3.7 kW
+        </text>
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.38 + 31}
+          text-anchor="middle"
+          font-size="5.5"
+          font-family="monospace"
+          font-weight="bold"
+          fill="#a7f3d0"
+        >
+          01428 kWh
+        </text>
+
+        <!-- Pulse indicator and button -->
+        <circle cx="12" cy={heightPx * 0.67} r="2" fill="#ef4444" stroke="#991b1b" stroke-width="0.5" />
+        <rect x="22" y={heightPx * 0.65} width="11" height="5" rx="1" fill="#334155" stroke="#475569" stroke-width="0.5" />
+
+        <text
+          x={totalWidth / 2}
+          y={heightPx * 0.74}
+          text-anchor="middle"
+          font-size="5"
+          font-weight="bold"
+          fill="#059669"
+        >
+          L-L / N Pass
+        </text>
+      {/if}
+    {:else if def?.category !== "accessory"}
       <!-- Custom circuit label -->
       <text
         x={totalWidth / 2}
@@ -813,10 +1105,11 @@
     >
       <!-- Generous invisible hit area -->
       <circle r="14" fill="transparent" />
+      <title>{term.label}</title>
 
       <!-- Screw / Terminal Housing -->
       <circle
-        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : 8}
+        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 5.5 : 8)}
         fill="#e2e8f0"
         stroke="#64748b"
         stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
@@ -826,10 +1119,10 @@
       />
       <!-- Screw Slot -->
       <line
-        x1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : -4}
-        y1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : -3}
-        x2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : 4}
-        y2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : 3}
+        x1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? -2.5 : -4)}
+        y1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? -2 : -3)}
+        x2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 2.5 : 4)}
+        y2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 2 : 3)}
         stroke="#475569"
         stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
           ? 1
@@ -844,16 +1137,18 @@
       />
 
       <!-- Terminal Label -->
-      <text
-        x="0"
-        y={def?.category === "ats" ? (term.id.startsWith("SIG") ? 12 : 16) : 18}
-        text-anchor="middle"
-        font-size={def?.category === "ats" ? "6.5" : "7"}
-        font-weight="bold"
-        fill="#475569"
-      >
-        {term.label}
-      </text>
+      {#if def?.typeId !== 'mts-2p-63a'}
+        <text
+          x="0"
+          y={def?.category === "ats" ? (term.id.startsWith("SIG") ? 12 : 16) : 18}
+          text-anchor="middle"
+          font-size={device.widthModules === 1 && topTerminals.length > 1 ? "5.5" : (def?.category === "ats" ? "6.5" : "7")}
+          font-weight="bold"
+          fill="#475569"
+        >
+          {term.label}
+        </text>
+      {/if}
     </g>
   {/each}
 
@@ -871,26 +1166,29 @@
     >
       <!-- Generous invisible hit area -->
       <circle r="14" fill="transparent" />
+      <title>{term.label}</title>
 
       <!-- Terminal Label -->
-      <text
-        x="0"
-        y={def?.category === "ats"
-          ? term.id.startsWith("SIG")
-            ? -7
-            : -9
-          : -10}
-        text-anchor="middle"
-        font-size={def?.category === "ats" ? "6.5" : "7"}
-        font-weight="bold"
-        fill="#475569"
-      >
-        {term.label}
-      </text>
+      {#if def?.typeId !== 'mts-2p-63a'}
+        <text
+          x="0"
+          y={def?.category === "ats"
+            ? term.id.startsWith("SIG")
+              ? -7
+              : -9
+            : -10}
+          text-anchor="middle"
+          font-size={device.widthModules === 1 && bottomTerminals.length > 1 ? "5.5" : (def?.category === "ats" ? "6.5" : "7")}
+          font-weight="bold"
+          fill="#475569"
+        >
+          {term.label}
+        </text>
+      {/if}
 
       <!-- Screw / Terminal Housing -->
       <circle
-        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : 8}
+        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 5.5 : 8)}
         fill="#e2e8f0"
         stroke="#64748b"
         stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
@@ -900,10 +1198,10 @@
       />
       <!-- Screw Slot -->
       <line
-        x1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : -4}
-        y1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : -3}
-        x2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : 4}
-        y2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : 3}
+        x1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? -2.5 : -4)}
+        y1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? -2 : -3)}
+        x2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 2.5 : 4)}
+        y2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 2 : 3)}
         stroke="#475569"
         stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
           ? 1
