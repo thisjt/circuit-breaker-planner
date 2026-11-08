@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { panelStore } from "#lib/state.svelte";
-  import { getDeviceDef } from "#lib/catalog";
-  import { getGaugeDef, getWireColor, isDarkColor } from "#lib/wireStandards";
-  import type { FreeEquipment, WirePoint, WireRole } from "#lib/types";
-  import DeviceItem from "./DeviceItem.svelte";
+  import { panelStore } from '#lib/state.svelte';
+  import { getDeviceDef } from '#lib/catalog';
+  import { getGaugeDef, getWireColor, isDarkColor } from '#lib/wireStandards';
+  import type { FreeEquipment, WirePoint, WireRole } from '#lib/types';
+  import DeviceItem from './DeviceItem.svelte';
 
   const MODULE_WIDTH_PX = 44;
   const DEVICE_HEIGHT_PX = 160;
@@ -22,9 +22,7 @@
   let dragHoverSlot = $state<number | null>(null);
 
   // Dragging waypoint state
-  let draggingWaypoint = $state<{ wireId: string; nodeIndex: number } | null>(
-    null,
-  );
+  let draggingWaypoint = $state<{ wireId: string; nodeIndex: number } | null>(null);
 
   // Dragging equipment state (Solar, Battery, MCCB, Inverters, Field Block)
   let draggingEquipmentId = $state<string | null>(null);
@@ -37,42 +35,34 @@
   // Calculate terminal absolute canvas coordinates
   function getTerminalCoords(
     deviceId: string,
-    terminalId: string,
-  ): { x: number; y: number; position: "top" | "bottom" } | null {
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
     // PE Busbars
-    if (deviceId.startsWith("PE_BAR")) {
-      const panelId = deviceId.includes(":")
-        ? deviceId.split(":")[0].replace("PE_BAR_", "")
-        : deviceId.replace("PE_BAR_", "");
-      const panel =
-        panelStore.panels.find((p) => p.id === panelId) || panelStore.panels[0];
+    if (deviceId.startsWith('PE_BAR')) {
+      const panelId = deviceId.includes(':')
+        ? deviceId.split(':')[0].replace('PE_BAR_', '')
+        : deviceId.replace('PE_BAR_', '');
+      const panel = panelStore.panels.find((p) => p.id === panelId) || panelStore.panels[0];
       const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
-      const index = parseInt(terminalId.replace("G_", "")) || 1;
-      const x =
-        panel.x +
-        PADDING_X +
-        (index - 0.5) * (railWidthPx / panel.groundBarSlots);
+      const index = parseInt(terminalId.replace('G_', '')) || 1;
+      const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.groundBarSlots);
       const y = panel.y + PADDING_Y - 40;
-      return { x, y, position: "top" };
+      return { x, y, position: 'top' };
     }
 
     // Neutral Busbars
-    if (deviceId.startsWith("N_BAR")) {
-      const panelId = deviceId.includes(":")
-        ? deviceId.split(":")[0].replace("N_BAR_", "")
-        : deviceId.replace("N_BAR_", "");
-      const panel =
-        panelStore.panels.find((p) => p.id === panelId) || panelStore.panels[0];
+    if (deviceId.startsWith('N_BAR')) {
+      const panelId = deviceId.includes(':')
+        ? deviceId.split(':')[0].replace('N_BAR_', '')
+        : deviceId.replace('N_BAR_', '');
+      const panel = panelStore.panels.find((p) => p.id === panelId) || panelStore.panels[0];
       const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
       const railSpacing = panel.railSpacing || 230;
       const panelTotalHeight = panel.rows * railSpacing + PADDING_Y * 2;
-      const index = parseInt(terminalId.replace("N_", "")) || 1;
-      const x =
-        panel.x +
-        PADDING_X +
-        (index - 0.5) * (railWidthPx / panel.neutralBarSlots);
+      const index = parseInt(terminalId.replace('N_', '')) || 1;
+      const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.neutralBarSlots);
       const y = panel.y + panelTotalHeight - PADDING_Y + 44;
-      return { x, y, position: "bottom" };
+      return { x, y, position: 'bottom' };
     }
 
     // Free Equipment (Solar Panel, Battery, MCCB, Hybrid & Offgrid Inverters, Field Block)
@@ -99,7 +89,7 @@
       railY +
       (term.yOffset !== undefined
         ? term.yOffset
-        : term.position === "top"
+        : term.position === 'top'
           ? 12
           : DEVICE_HEIGHT_PX - 14);
 
@@ -109,125 +99,87 @@
   // Calculate terminal coordinates for free equipment
   function getEquipmentTerminalCoords(
     eq: FreeEquipment,
-    terminalId: string,
-  ): { x: number; y: number; position: "top" | "bottom" } | null {
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
     const w = eq.width || 100;
     const h = eq.height || 100;
-    const isTop = (eq.terminalPosition || "top") !== "bottom";
+    const isTop = (eq.terminalPosition || 'top') !== 'bottom';
 
     switch (eq.type) {
-      case "solar_panel": {
+      case 'solar_panel': {
         const termY = isTop ? eq.y + 16 : eq.y + h - 16;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        if (
-          terminalId === "PV+" ||
-          terminalId === "1" ||
-          terminalId === "DC+"
-        ) {
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'PV+' || terminalId === '1' || terminalId === 'DC+') {
           return { x: eq.x + 30, y: termY, position: pos };
         }
         return { x: eq.x + w - 30, y: termY, position: pos };
       }
 
-      case "battery": {
+      case 'battery': {
         const termY = isTop ? eq.y + 16 : eq.y + h - 16;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        if (
-          terminalId === "BAT+" ||
-          terminalId === "B+" ||
-          terminalId === "1"
-        ) {
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'BAT+' || terminalId === 'B+' || terminalId === '1') {
           return { x: eq.x + 32, y: termY, position: pos };
         }
         return { x: eq.x + w - 32, y: termY, position: pos };
       }
 
-      case "mccb": {
-        if (
-          terminalId.includes("IN") ||
-          terminalId === "1" ||
-          terminalId === "3"
-        ) {
-          const xOffset =
-            terminalId === "L1_IN" || terminalId === "1" ? 28 : w - 28;
-          return { x: eq.x + xOffset, y: eq.y + 14, position: "top" };
+      case 'mccb': {
+        if (terminalId.includes('IN') || terminalId === '1' || terminalId === '3') {
+          const xOffset = terminalId === 'L1_IN' || terminalId === '1' ? 28 : w - 28;
+          return { x: eq.x + xOffset, y: eq.y + 14, position: 'top' };
         } else {
-          const xOffset =
-            terminalId === "L1_OUT" || terminalId === "2" ? 28 : w - 28;
-          return { x: eq.x + xOffset, y: eq.y + h - 14, position: "bottom" };
+          const xOffset = terminalId === 'L1_OUT' || terminalId === '2' ? 28 : w - 28;
+          return { x: eq.x + xOffset, y: eq.y + h - 14, position: 'bottom' };
         }
       }
 
-      case "hybrid_inverter": {
+      case 'hybrid_inverter': {
         // Top row terminals: PV1+, PV1-, BAT+, BAT-
-        if (
-          terminalId === "PV1+" ||
-          terminalId === "PV+" ||
-          terminalId === "DC+"
-        ) {
-          return { x: eq.x + 28, y: eq.y + 16, position: "top" };
+        if (terminalId === 'PV1+' || terminalId === 'PV+' || terminalId === 'DC+') {
+          return { x: eq.x + 28, y: eq.y + 16, position: 'top' };
         }
-        if (
-          terminalId === "PV1-" ||
-          terminalId === "PV-" ||
-          terminalId === "DC-"
-        ) {
-          return { x: eq.x + 56, y: eq.y + 16, position: "top" };
+        if (terminalId === 'PV1-' || terminalId === 'PV-' || terminalId === 'DC-') {
+          return { x: eq.x + 56, y: eq.y + 16, position: 'top' };
         }
-        if (terminalId === "BAT+" || terminalId === "B+") {
-          return { x: eq.x + w - 56, y: eq.y + 16, position: "top" };
+        if (terminalId === 'BAT+' || terminalId === 'B+') {
+          return { x: eq.x + w - 56, y: eq.y + 16, position: 'top' };
         }
-        if (terminalId === "BAT-" || terminalId === "B-") {
-          return { x: eq.x + w - 26, y: eq.y + 16, position: "top" };
+        if (terminalId === 'BAT-' || terminalId === 'B-') {
+          return { x: eq.x + w - 26, y: eq.y + 16, position: 'top' };
         }
 
         // Bottom row terminals: AC_IN (L, N, PE) & AC_OUT (L, N, PE)
-        if (terminalId === "AC_IN_L")
-          return { x: eq.x + 26, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_N")
-          return { x: eq.x + 50, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_PE")
-          return { x: eq.x + 74, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_L")
-          return { x: eq.x + w - 74, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_N")
-          return { x: eq.x + w - 50, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_PE")
-          return { x: eq.x + w - 26, y: eq.y + h - 16, position: "bottom" };
+        if (terminalId === 'AC_IN_L') return { x: eq.x + 26, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_PE') return { x: eq.x + 74, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + w - 74, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + w - 26, y: eq.y + h - 16, position: 'bottom' };
 
-        return { x: eq.x + w / 2, y: eq.y + h - 16, position: "bottom" };
+        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
       }
 
-      case "offgrid_inverter": {
-        if (terminalId === "PV+" || terminalId === "DC+")
-          return { x: eq.x + 32, y: eq.y + 16, position: "top" };
-        if (terminalId === "PV-" || terminalId === "DC-")
-          return { x: eq.x + 60, y: eq.y + 16, position: "top" };
-        if (terminalId === "BAT+" || terminalId === "B+")
-          return { x: eq.x + w - 60, y: eq.y + 16, position: "top" };
-        if (terminalId === "BAT-" || terminalId === "B-")
-          return { x: eq.x + w - 32, y: eq.y + 16, position: "top" };
+      case 'offgrid_inverter': {
+        if (terminalId === 'PV+' || terminalId === 'DC+') return { x: eq.x + 32, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'PV-' || terminalId === 'DC-') return { x: eq.x + 60, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'BAT+' || terminalId === 'B+') return { x: eq.x + w - 60, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'BAT-' || terminalId === 'B-') return { x: eq.x + w - 32, y: eq.y + 16, position: 'top' };
 
-        if (terminalId === "AC_OUT_L")
-          return { x: eq.x + 36, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_N")
-          return { x: eq.x + 72, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_PE")
-          return { x: eq.x + 108, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_L")
-          return { x: eq.x + w - 50, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_N")
-          return { x: eq.x + w - 24, y: eq.y + h - 16, position: "bottom" };
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + 36, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + 72, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + 108, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_L') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + w - 24, y: eq.y + h - 16, position: 'bottom' };
 
-        return { x: eq.x + w / 2, y: eq.y + h - 16, position: "bottom" };
+        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
       }
 
-      case "field_block":
+      case 'field_block':
       default: {
         const termY = isTop ? eq.y + 14 : eq.y + h - 14;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        const termX =
-          terminalId === "1" || terminalId === "L" ? eq.x + 24 : eq.x + w - 24;
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        const termX = terminalId === '1' || terminalId === 'L' ? eq.x + 24 : eq.x + w - 24;
         return { x: termX, y: termY, position: pos };
       }
     }
@@ -235,17 +187,17 @@
 
   // Generate SVG wire path with orthogonal right angles and nodes
   function generateWirePath(
-    src: { x: number; y: number; position?: "top" | "bottom" },
-    tgt: { x: number; y: number; position?: "top" | "bottom" },
+    src: { x: number; y: number; position?: 'top' | 'bottom' },
+    tgt: { x: number; y: number; position?: 'top' | 'bottom' },
     waypoints: WirePoint[] = [],
-    mode: "curved" | "orthogonal" = "orthogonal",
+    mode: 'curved' | 'orthogonal' = 'orthogonal'
   ): string {
     const x1 = src.x;
     const y1 = src.y;
     const x2 = tgt.x;
     const y2 = tgt.y;
 
-    if (mode === "curved") {
+    if (mode === 'curved') {
       if (waypoints.length === 0) {
         const dx = x2 - x1;
         const dy = y2 - y1;
@@ -271,18 +223,10 @@
 
     // ORTHOGONAL (RIGHT ANGLE) ROUTING
     if (waypoints.length === 0) {
-      if (
-        src.position === "top" &&
-        tgt.position === "top" &&
-        Math.abs(y1 - y2) < 30
-      ) {
+      if (src.position === 'top' && tgt.position === 'top' && Math.abs(y1 - y2) < 30) {
         const gutterY = Math.min(y1, y2) - 30;
         return `M ${x1} ${y1} L ${x1} ${gutterY} L ${x2} ${gutterY} L ${x2} ${y2}`;
-      } else if (
-        src.position === "bottom" &&
-        tgt.position === "bottom" &&
-        Math.abs(y1 - y2) < 30
-      ) {
+      } else if (src.position === 'bottom' && tgt.position === 'bottom' && Math.abs(y1 - y2) < 30) {
         const gutterY = Math.max(y1, y2) + 30;
         return `M ${x1} ${y1} L ${x1} ${gutterY} L ${x2} ${gutterY} L ${x2} ${y2}`;
       } else {
@@ -320,8 +264,7 @@
     if (
       e.button === 1 ||
       (e.button === 0 && e.altKey) ||
-      (panelStore.activeTool === "select" &&
-        (e.target as HTMLElement).tagName === "svg")
+      (panelStore.activeTool === 'select' && (e.target as HTMLElement).tagName === 'svg')
     ) {
       isPanning = true;
       panStartX = e.clientX - panelStore.pan.x;
@@ -348,7 +291,7 @@
       panelStore.updateWireWaypoint(
         draggingWaypoint.wireId,
         draggingWaypoint.nodeIndex,
-        { x: snappedX, y: snappedY },
+        { x: snappedX, y: snappedY }
       );
       return;
     }
@@ -358,7 +301,7 @@
       panelStore.movePanel(
         draggingPanelId,
         rawX - panelDragOffset.x,
-        rawY - panelDragOffset.y,
+        rawY - panelDragOffset.y
       );
       return;
     }
@@ -392,12 +335,7 @@
         const railIdx = Math.floor(relY / pRailSpacing);
         const slotIdx = Math.floor(relX / MODULE_WIDTH_PX);
 
-        if (
-          railIdx >= 0 &&
-          railIdx < panel.rows &&
-          slotIdx >= 0 &&
-          slotIdx < panel.slotsPerRow
-        ) {
+        if (railIdx >= 0 && railIdx < panel.rows && slotIdx >= 0 && slotIdx < panel.slotsPerRow) {
           foundPanelId = panel.id;
           foundRail = railIdx;
           foundSlot = slotIdx;
@@ -423,34 +361,14 @@
     }
 
     // If placing from catalog
-    if (
-      panelStore.pendingPlaceTypeId &&
-      dragHoverRail !== null &&
-      dragHoverSlot !== null &&
-      dragHoverPanelId
-    ) {
-      panelStore.placeDevice(
-        panelStore.pendingPlaceTypeId,
-        dragHoverRail,
-        dragHoverSlot,
-        dragHoverPanelId,
-      );
+    if (panelStore.pendingPlaceTypeId && dragHoverRail !== null && dragHoverSlot !== null && dragHoverPanelId) {
+      panelStore.placeDevice(panelStore.pendingPlaceTypeId, dragHoverRail, dragHoverSlot, dragHoverPanelId);
       panelStore.pendingPlaceTypeId = null;
     }
 
     // If moving existing device
-    if (
-      draggingDeviceId &&
-      dragHoverRail !== null &&
-      dragHoverSlot !== null &&
-      dragHoverPanelId
-    ) {
-      panelStore.moveDevice(
-        draggingDeviceId,
-        dragHoverRail,
-        dragHoverSlot,
-        dragHoverPanelId,
-      );
+    if (draggingDeviceId && dragHoverRail !== null && dragHoverSlot !== null && dragHoverPanelId) {
+      panelStore.moveDevice(draggingDeviceId, dragHoverRail, dragHoverSlot, dragHoverPanelId);
       draggingDeviceId = null;
     }
 
@@ -475,7 +393,7 @@
   function handlePanelHeaderMouseDown(panelId: string, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
-    panelStore.select("panel", panelId);
+    panelStore.select('panel', panelId);
     const p = panelStore.panels.find((panel) => panel.id === panelId);
     if (!p || !svgElement) return;
 
@@ -491,7 +409,7 @@
   function handleEquipmentMouseDown(id: string, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
-    panelStore.select("equipment", id);
+    panelStore.select('equipment', id);
     const eq = panelStore.equipment.find((b) => b.id === id);
     if (!eq || !svgElement) return;
     const rect = svgElement.getBoundingClientRect();
@@ -505,8 +423,8 @@
   function handleEquipmentTerminalMouseDown(
     eqId: string,
     terminalId: string,
-    suggestedRole: WireRole = "line1",
-    e: MouseEvent,
+    suggestedRole: WireRole = 'line1',
+    e: MouseEvent
   ) {
     e.stopPropagation();
     const coords = getTerminalCoords(eqId, terminalId);
@@ -521,11 +439,7 @@
   }
 
   // Terminal click handler
-  function handleTerminalMouseDown(
-    deviceId: string,
-    terminalId: string,
-    e: MouseEvent,
-  ) {
+  function handleTerminalMouseDown(deviceId: string, terminalId: string, e: MouseEvent) {
     e.stopPropagation();
     const coords = getTerminalCoords(deviceId, terminalId);
     if (!coords) return;
@@ -548,11 +462,7 @@
   }
 
   // Dragging intermediate waypoint node
-  function handleWaypointMouseDown(
-    wireId: string,
-    nodeIndex: number,
-    e: MouseEvent,
-  ) {
+  function handleWaypointMouseDown(wireId: string, nodeIndex: number, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
     draggingWaypoint = { wireId, nodeIndex };
@@ -584,27 +494,12 @@
   >
     <!-- Background Grid Pattern -->
     <defs>
-      <pattern
-        id="smallGrid"
-        width="20"
-        height="20"
-        patternUnits="userSpaceOnUse"
-      >
-        <path
-          d="M 20 0 L 0 0 0 20"
-          fill="none"
-          stroke="#1e293b"
-          stroke-width="0.8"
-        />
+      <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e293b" stroke-width="0.8" />
       </pattern>
       <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
         <rect width="100" height="100" fill="url(#smallGrid)" />
-        <path
-          d="M 100 0 L 0 0 0 100"
-          fill="none"
-          stroke="#334155"
-          stroke-width="1.2"
-        />
+        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#334155" stroke-width="1.2" />
       </pattern>
       <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
         <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25" />
@@ -612,10 +507,7 @@
     </defs>
 
     <!-- Canvas Transform Layer -->
-    <g
-      transform="translate({panelStore.pan.x}, {panelStore.pan
-        .y}) scale({panelStore.zoom})"
-    >
+    <g transform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})">
       <!-- Grid background -->
       <rect
         x="-2000"
@@ -632,9 +524,7 @@
         {@const pRailWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX}
         {@const pTotalWidth = pRailWidthPx + PADDING_X * 2}
         {@const pTotalHeight = panel.rows * pRailSpacing + PADDING_Y * 2}
-        {@const isPanelSelected =
-          panelStore.selectedType === "panel" &&
-          panelStore.selectedId === panel.id}
+        {@const isPanelSelected = panelStore.selectedType === 'panel' && panelStore.selectedId === panel.id}
         {@const isActivePanel = panelStore.activePanelId === panel.id}
 
         <g class="panel-enclosure" transform="translate({panel.x}, {panel.y})">
@@ -647,16 +537,12 @@
             height={pTotalHeight - PADDING_Y * 2 + 165}
             rx="14"
             fill="#0f172a"
-            stroke={isPanelSelected
-              ? "#38bdf8"
-              : isActivePanel
-                ? "#3b82f6"
-                : "#475569"}
+            stroke={isPanelSelected ? '#38bdf8' : isActivePanel ? '#3b82f6' : '#475569'}
             stroke-width={isPanelSelected ? 3.5 : isActivePanel ? 2.5 : 2}
             class="filter drop-shadow-2xl cursor-pointer transition-colors"
             onclick={(e) => {
               e.stopPropagation();
-              panelStore.select("panel", panel.id);
+              panelStore.select('panel', panel.id);
             }}
           />
 
@@ -667,8 +553,8 @@
             width={pRailWidthPx + 50}
             height="32"
             rx="6"
-            fill={isActivePanel ? "#1e293b" : "#0f172a"}
-            stroke={isActivePanel ? "#334155" : "transparent"}
+            fill={isActivePanel ? '#1e293b' : '#0f172a'}
+            stroke={isActivePanel ? '#334155' : 'transparent'}
             stroke-width="1"
             class="cursor-move hover:fill-slate-800 transition-colors"
             onmousedown={(e) => handlePanelHeaderMouseDown(panel.id, e)}
@@ -680,7 +566,7 @@
             y={PADDING_Y - 69}
             font-size="12"
             font-weight="bold"
-            fill={isActivePanel ? "#38bdf8" : "#94a3b8"}
+            fill={isActivePanel ? '#38bdf8' : '#94a3b8'}
             class="font-mono tracking-wider uppercase select-none cursor-move"
             onmousedown={(e) => handlePanelHeaderMouseDown(panel.id, e)}
           >
@@ -694,7 +580,7 @@
             width="65"
             height="16"
             rx="4"
-            fill={isActivePanel ? "#2563eb" : "#334155"}
+            fill={isActivePanel ? '#2563eb' : '#334155'}
           />
           <text
             x={PADDING_X + pRailWidthPx - 22}
@@ -705,15 +591,12 @@
             fill="#ffffff"
             class="font-mono"
           >
-            {isActivePanel ? "ACTIVE" : "SELECT"}
+            {isActivePanel ? 'ACTIVE' : 'SELECT'}
           </text>
 
           <!-- TOP GROUND (PE) BRASS BUSBAR STRIP -->
           {#if panel.hasGroundBar}
-            <g
-              class="ground-bar"
-              transform="translate({PADDING_X}, {PADDING_Y - 48})"
-            >
+            <g class="ground-bar" transform="translate({PADDING_X}, {PADDING_Y - 48})">
               <rect
                 x="0"
                 y="0"
@@ -735,23 +618,12 @@
                 PE BAR
               </text>
               {#each Array(panel.groundBarSlots) as _, idx}
-                {@const holeX =
-                  (idx + 0.5) * (pRailWidthPx / panel.groundBarSlots)}
+                {@const holeX = (idx + 0.5) * (pRailWidthPx / panel.groundBarSlots)}
                 <g
                   class="terminal-pe cursor-pointer group"
                   transform="translate({holeX}, 8)"
-                  onmousedown={(e) =>
-                    handleTerminalMouseDown(
-                      `PE_BAR_${panel.id}`,
-                      `G_${idx + 1}`,
-                      e,
-                    )}
-                  onclick={(e) =>
-                    handleTerminalMouseDown(
-                      `PE_BAR_${panel.id}`,
-                      `G_${idx + 1}`,
-                      e,
-                    )}
+                  onmousedown={(e) => handleTerminalMouseDown(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e)}
+                  onclick={(e) => handleTerminalMouseDown(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e)}
                   role="button"
                   tabindex="0"
                 >
@@ -771,12 +643,7 @@
 
           <!-- BOTTOM NEUTRAL (N) BRASS BUSBAR STRIP -->
           {#if panel.hasNeutralBar}
-            <g
-              class="neutral-bar"
-              transform="translate({PADDING_X}, {pTotalHeight -
-                PADDING_Y +
-                36})"
-            >
+            <g class="neutral-bar" transform="translate({PADDING_X}, {pTotalHeight - PADDING_Y + 36})">
               <rect
                 x="0"
                 y="0"
@@ -798,23 +665,12 @@
                 N BAR
               </text>
               {#each Array(panel.neutralBarSlots) as _, idx}
-                {@const holeX =
-                  (idx + 0.5) * (pRailWidthPx / panel.neutralBarSlots)}
+                {@const holeX = (idx + 0.5) * (pRailWidthPx / panel.neutralBarSlots)}
                 <g
                   class="terminal-n cursor-pointer group"
                   transform="translate({holeX}, 8)"
-                  onmousedown={(e) =>
-                    handleTerminalMouseDown(
-                      `N_BAR_${panel.id}`,
-                      `N_${idx + 1}`,
-                      e,
-                    )}
-                  onclick={(e) =>
-                    handleTerminalMouseDown(
-                      `N_BAR_${panel.id}`,
-                      `N_${idx + 1}`,
-                      e,
-                    )}
+                  onmousedown={(e) => handleTerminalMouseDown(`N_BAR_${panel.id}`, `N_${idx + 1}`, e)}
+                  onclick={(e) => handleTerminalMouseDown(`N_BAR_${panel.id}`, `N_${idx + 1}`, e)}
                   role="button"
                   tabindex="0"
                 >
@@ -835,8 +691,7 @@
           <!-- INTER-RAIL GUTTER DIMENSION GUIDES -->
           {#if panel.rows > 1}
             {#each Array(panel.rows - 1) as _, r}
-              {@const gutterTopY =
-                PADDING_Y + r * pRailSpacing + DEVICE_HEIGHT_PX}
+              {@const gutterTopY = PADDING_Y + r * pRailSpacing + DEVICE_HEIGHT_PX}
               {@const gutterBottomY = PADDING_Y + (r + 1) * pRailSpacing}
               {@const gutterHeight = gutterBottomY - gutterTopY}
               {@const gutterMidY = (gutterTopY + gutterBottomY) / 2}
@@ -961,19 +816,14 @@
             {@const railY = PADDING_Y + busbar.railIndex * pRailSpacing}
             {@const barX = PADDING_X + busbar.startSlot * MODULE_WIDTH_PX}
             {@const barWidth = busbar.slotSpan * MODULE_WIDTH_PX}
-            {@const barY =
-              busbar.position === "top"
-                ? railY - 14
-                : railY + DEVICE_HEIGHT_PX + 4}
-            {@const isSelected =
-              panelStore.selectedType === "busbar" &&
-              panelStore.selectedId === busbar.id}
+            {@const barY = busbar.position === 'top' ? railY - 14 : railY + DEVICE_HEIGHT_PX + 4}
+            {@const isSelected = panelStore.selectedType === 'busbar' && panelStore.selectedId === busbar.id}
 
             <g
               class="comb-busbar cursor-pointer group"
               onclick={(e) => {
                 e.stopPropagation();
-                panelStore.select("busbar", busbar.id);
+                panelStore.select('busbar', busbar.id);
               }}
               role="button"
               tabindex="0"
@@ -984,8 +834,8 @@
                 width={barWidth - 4}
                 height="10"
                 rx="2"
-                fill={isSelected ? "#3b82f6" : "#e2e8f0"}
-                stroke={isSelected ? "#1d4ed8" : "#94a3b8"}
+                fill={isSelected ? '#3b82f6' : '#e2e8f0'}
+                stroke={isSelected ? '#1d4ed8' : '#94a3b8'}
                 stroke-width="1.5"
                 class="filter drop-shadow-md"
               />
@@ -1003,7 +853,7 @@
                 {@const prongX = barX + (p + 0.5) * MODULE_WIDTH_PX}
                 <rect
                   x={prongX - 2.5}
-                  y={busbar.position === "top" ? barY + 9 : barY - 8}
+                  y={busbar.position === 'top' ? barY + 9 : barY - 8}
                   width="5"
                   height="8"
                   fill="#d97706"
@@ -1050,10 +900,7 @@
 
       <!-- FREE-PLACE EQUIPMENT (SOLAR PANELS, BATTERY, MCCB, INVERTERS, FIELD BLOCKS) -->
       {#each panelStore.equipment as eq (eq.id)}
-        {@const isSelected =
-          (panelStore.selectedType === "equipment" ||
-            panelStore.selectedType === "field_block") &&
-          panelStore.selectedId === eq.id}
+        {@const isSelected = (panelStore.selectedType === 'equipment' || panelStore.selectedType === 'field_block') && panelStore.selectedId === eq.id}
         {@const w = eq.width || 100}
         {@const h = eq.height || 100}
 
@@ -1063,13 +910,13 @@
           onmousedown={(e) => handleEquipmentMouseDown(eq.id, e)}
           onclick={(e) => {
             e.stopPropagation();
-            panelStore.select("equipment", eq.id);
+            panelStore.select('equipment', eq.id);
           }}
           role="button"
           tabindex="0"
         >
           <!-- 1. SOLAR PANEL (Photovoltaic Monocrystalline Module) -->
-          {#if eq.type === "solar_panel"}
+          {#if eq.type === 'solar_panel'}
             <rect
               x="0"
               y="0"
@@ -1077,21 +924,12 @@
               height={h}
               rx="6"
               fill="#091428"
-              stroke={isSelected ? "#38bdf8" : "#94a3b8"}
+              stroke={isSelected ? '#38bdf8' : '#94a3b8'}
               stroke-width={isSelected ? 3 : 1.5}
               class="filter drop-shadow-lg transition-colors hover:stroke-amber-400"
             />
             <!-- Aluminum Anodized Border Frame -->
-            <rect
-              x="2"
-              y="2"
-              width={w - 4}
-              height={h - 4}
-              rx="4"
-              fill="none"
-              stroke="#cbd5e1"
-              stroke-width="2"
-            />
+            <rect x="2" y="2" width={w - 4} height={h - 4} rx="4" fill="none" stroke="#cbd5e1" stroke-width="2" />
             <!-- Solar PV Cells Grid -->
             <g opacity="0.4" stroke="#60a5fa" stroke-width="0.8">
               {#each Array(4) as _, r}
@@ -1102,59 +940,19 @@
               {/each}
             </g>
             <!-- Badge pill -->
-            <rect
-              x={w / 2 - 38}
-              y="8"
-              width="76"
-              height="13"
-              rx="3"
-              fill="#fef3c7"
-              stroke="#f59e0b"
-              stroke-width="0.8"
-            />
-            <text
-              x={w / 2}
-              y="17.5"
-              font-size="7"
-              font-weight="900"
-              fill="#b45309"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <rect x={w / 2 - 38} y="8" width="76" height="13" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="0.8" />
+            <text x={w / 2} y="17.5" font-size="7" font-weight="900" fill="#b45309" text-anchor="middle" font-family="monospace">
               ☀️ PV MODULE
             </text>
             <!-- Rated Power Display -->
-            <text
-              x={w / 2}
-              y={h / 2 - 2}
-              font-size="16"
-              font-weight="900"
-              fill="#ffffff"
-              text-anchor="middle"
-              font-family="system-ui, sans-serif"
-            >
+            <text x={w / 2} y={h / 2 - 2} font-size="16" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="system-ui, sans-serif">
               {eq.powerWatts || 550}W
             </text>
             <!-- Specs Subtitle -->
-            <text
-              x={w / 2}
-              y={h / 2 + 13}
-              font-size="7"
-              font-weight="bold"
-              fill="#38bdf8"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <text x={w / 2} y={h / 2 + 13} font-size="7" font-weight="bold" fill="#38bdf8" text-anchor="middle" font-family="monospace">
               {eq.voltage || 41.5}V • {eq.current || 13.25}A
             </text>
-            <text
-              x={w / 2}
-              y={h - 18}
-              font-size="7.5"
-              font-weight="bold"
-              fill="#f8fafc"
-              text-anchor="middle"
-            >
+            <text x={w / 2} y={h - 18} font-size="7.5" font-weight="bold" fill="#f8fafc" text-anchor="middle">
               {eq.label}
             </text>
 
@@ -1162,80 +960,36 @@
             <g
               class="terminal cursor-pointer group/pvpos"
               transform="translate(30, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV+", "dc_pos", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV+", "dc_pos", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
               <title>Solar PV+ Positive Terminal</title>
-              <circle
-                r="7"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.5"
-                class="group-hover/pvpos:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="2.5"
-                text-anchor="middle"
-                font-size="7"
-                font-weight="900"
-                fill="#ffffff">+</text
-              >
-              <text
-                x="0"
-                y="-10"
-                text-anchor="middle"
-                font-size="6"
-                font-weight="bold"
-                fill="#ef4444">PV+</text
-              >
+              <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/pvpos:scale-125 transition-transform" />
+              <text x="0" y="2.5" text-anchor="middle" font-size="7" font-weight="900" fill="#ffffff">+</text>
+              <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#ef4444">PV+</text>
             </g>
 
             <!-- TERMINAL PV- (DC Negative - Right) -->
             <g
               class="terminal cursor-pointer group/pvneg"
               transform="translate({w - 30}, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV-", "dc_neg", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV-", "dc_neg", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
               <title>Solar PV- Negative Terminal</title>
-              <circle
-                r="7"
-                fill="#0f172a"
-                stroke="#94a3b8"
-                stroke-width="1.5"
-                class="group-hover/pvneg:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="2.5"
-                text-anchor="middle"
-                font-size="8"
-                font-weight="900"
-                fill="#ffffff">-</text
-              >
-              <text
-                x="0"
-                y="-10"
-                text-anchor="middle"
-                font-size="6"
-                font-weight="bold"
-                fill="#cbd5e1">PV-</text
-              >
+              <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/pvneg:scale-125 transition-transform" />
+              <text x="0" y="2.5" text-anchor="middle" font-size="8" font-weight="900" fill="#ffffff">-</text>
+              <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#cbd5e1">PV-</text>
             </g>
 
-            <!-- 2. BATTERY (Energy Storage Server-Rack / LiFePO4 Module) -->
-          {:else if eq.type === "battery"}
+          <!-- 2. BATTERY (Energy Storage Server-Rack / LiFePO4 Module) -->
+          {:else if eq.type === 'battery'}
             <rect
               x="0"
               y="0"
@@ -1243,7 +997,7 @@
               height={h}
               rx="6"
               fill="#18181b"
-              stroke={isSelected ? "#38bdf8" : "#71717a"}
+              stroke={isSelected ? '#38bdf8' : '#71717a'}
               stroke-width={isSelected ? 3 : 1.5}
               class="filter drop-shadow-lg transition-colors hover:stroke-emerald-400"
             />
@@ -1252,61 +1006,19 @@
             <!-- Battery Status LEDs / SoC Meter -->
             <g transform="translate(18, 30)">
               {#each Array(5) as _, i}
-                <rect
-                  x={i * 9}
-                  y="0"
-                  width="6"
-                  height="5"
-                  rx="1"
-                  fill="#10b981"
-                  opacity={0.6 + i * 0.1}
-                />
+                <rect x={i * 9} y="0" width="6" height="5" rx="1" fill="#10b981" opacity={0.6 + i * 0.1} />
               {/each}
-              <text
-                x="56"
-                y="5"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#10b981"
-                font-family="monospace">SoC 100%</text
-              >
+              <text x="56" y="5" font-size="5.5" font-weight="bold" fill="#10b981" font-family="monospace">SoC 100%</text>
             </g>
             <!-- Large Autocalculated Capacity (kWh) -->
-            <text
-              x={w / 2}
-              y={h / 2 + 10}
-              font-size="14"
-              font-weight="900"
-              fill="#ffffff"
-              text-anchor="middle"
-              font-family="system-ui, sans-serif"
-            >
-              {(
-                (eq.whCalculated ||
-                  (eq.batteryVoltage || 51.2) * (eq.capacityAh || 100)) / 1000
-              ).toFixed(2)} kWh
+            <text x={w / 2} y={h / 2 + 10} font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="system-ui, sans-serif">
+              {((eq.whCalculated || (eq.batteryVoltage || 51.2) * (eq.capacityAh || 100)) / 1000).toFixed(2)} kWh
             </text>
             <!-- Voltage & Ah Subtitle -->
-            <text
-              x={w / 2}
-              y={h / 2 + 23}
-              font-size="7"
-              font-weight="bold"
-              fill="#a1a1aa"
-              text-anchor="middle"
-              font-family="monospace"
-            >
-              {eq.batteryVoltage || 51.2}V • {eq.capacityAh || 100}Ah ({eq.chemistry ||
-                "LiFePO4"})
+            <text x={w / 2} y={h / 2 + 23} font-size="7" font-weight="bold" fill="#a1a1aa" text-anchor="middle" font-family="monospace">
+              {eq.batteryVoltage || 51.2}V • {eq.capacityAh || 100}Ah ({eq.chemistry || 'LiFePO4'})
             </text>
-            <text
-              x={w / 2}
-              y={h - 10}
-              font-size="7.5"
-              font-weight="bold"
-              fill="#f4f4f5"
-              text-anchor="middle"
-            >
+            <text x={w / 2} y={h - 10} font-size="7.5" font-weight="bold" fill="#f4f4f5" text-anchor="middle">
               {eq.label}
             </text>
 
@@ -1314,80 +1026,36 @@
             <g
               class="terminal cursor-pointer group/batpos"
               transform="translate(32, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT+", "dc_pos", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT+", "dc_pos", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
               <title>Battery Positive (BAT+)</title>
-              <circle
-                r="7"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.5"
-                class="group-hover/batpos:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="2.5"
-                text-anchor="middle"
-                font-size="7"
-                font-weight="900"
-                fill="#ffffff">+</text
-              >
-              <text
-                x="0"
-                y="-10"
-                text-anchor="middle"
-                font-size="6"
-                font-weight="bold"
-                fill="#ef4444">BAT+</text
-              >
+              <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/batpos:scale-125 transition-transform" />
+              <text x="0" y="2.5" text-anchor="middle" font-size="7" font-weight="900" fill="#ffffff">+</text>
+              <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#ef4444">BAT+</text>
             </g>
 
             <!-- TERMINAL BAT- (Right) -->
             <g
               class="terminal cursor-pointer group/batneg"
               transform="translate({w - 32}, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT-", "dc_neg", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT-", "dc_neg", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
               <title>Battery Negative (BAT-)</title>
-              <circle
-                r="7"
-                fill="#0f172a"
-                stroke="#94a3b8"
-                stroke-width="1.5"
-                class="group-hover/batneg:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="2.5"
-                text-anchor="middle"
-                font-size="8"
-                font-weight="900"
-                fill="#ffffff">-</text
-              >
-              <text
-                x="0"
-                y="-10"
-                text-anchor="middle"
-                font-size="6"
-                font-weight="bold"
-                fill="#cbd5e1">BAT-</text
-              >
+              <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/batneg:scale-125 transition-transform" />
+              <text x="0" y="2.5" text-anchor="middle" font-size="8" font-weight="900" fill="#ffffff">-</text>
+              <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#cbd5e1">BAT-</text>
             </g>
 
-            <!-- 3. MCCB (Molded Case Circuit Breaker) -->
-          {:else if eq.type === "mccb"}
+          <!-- 3. MCCB (Molded Case Circuit Breaker) -->
+          {:else if eq.type === 'mccb'}
             <rect
               x="0"
               y="0"
@@ -1395,77 +1063,23 @@
               height={h}
               rx="6"
               fill="#1e293b"
-              stroke={isSelected ? "#38bdf8" : "#64748b"}
+              stroke={isSelected ? '#38bdf8' : '#64748b'}
               stroke-width={isSelected ? 3 : 1.5}
               class="filter drop-shadow-xl transition-colors hover:stroke-orange-400"
             />
             <!-- Center Switch Body Inset -->
-            <rect
-              x="10"
-              y="32"
-              width={w - 20}
-              height={h - 64}
-              rx="4"
-              fill="#0f172a"
-              stroke="#334155"
-              stroke-width="1.2"
-            />
+            <rect x="10" y="32" width={w - 20} height={h - 64} rx="4" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
             <!-- Center Heavy Duty Toggle Handle -->
-            <rect
-              x={w / 2 - 12}
-              y={h / 2 - 20}
-              width="24"
-              height="40"
-              rx="3"
-              fill="#334155"
-              stroke="#475569"
-              stroke-width="1"
-            />
-            <rect
-              x={w / 2 - 8}
-              y={h / 2 - 16}
-              width="16"
-              height="14"
-              rx="2"
-              fill="#ef4444"
-            />
-            <text
-              x={w / 2}
-              y={h / 2 - 6}
-              font-size="7"
-              font-weight="900"
-              fill="#ffffff"
-              text-anchor="middle">ON</text
-            >
+            <rect x={w / 2 - 12} y={h / 2 - 20} width="24" height="40" rx="3" fill="#334155" stroke="#475569" stroke-width="1" />
+            <rect x={w / 2 - 8} y={h / 2 - 16} width="16" height="14" rx="2" fill="#ef4444" />
+            <text x={w / 2} y={h / 2 - 6} font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">ON</text>
             <!-- Push to Trip Red Button -->
-            <circle
-              cx={w / 2 + 24}
-              cy={h / 2 + 10}
-              r="3.5"
-              fill="#ef4444"
-              stroke="#991b1b"
-              stroke-width="0.8"
-            />
+            <circle cx={w / 2 + 24} cy={h / 2 + 10} r="3.5" fill="#ef4444" stroke="#991b1b" stroke-width="0.8" />
             <!-- Amp Rating & Specs -->
-            <text
-              x={w / 2}
-              y={h / 2 + 38}
-              font-size="9"
-              font-weight="900"
-              fill="#f8fafc"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <text x={w / 2} y={h / 2 + 38} font-size="9" font-weight="900" fill="#f8fafc" text-anchor="middle" font-family="monospace">
               MCCB {eq.ratedAmps || 160}A
             </text>
-            <text
-              x={w / 2}
-              y={h / 2 + 47}
-              font-size="6"
-              font-weight="bold"
-              fill="#94a3b8"
-              text-anchor="middle"
-            >
+            <text x={w / 2} y={h / 2 + 47} font-size="6" font-weight="bold" fill="#94a3b8" text-anchor="middle">
               {eq.poles || 2}P • {eq.breakingCapacityKa || 36}kA Icu
             </text>
 
@@ -1473,116 +1087,56 @@
             <g
               class="terminal cursor-pointer group/mccbl1in"
               transform="translate(28, 14)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L1_IN", "line1", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L1_IN", "line1", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_IN', 'line1', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_IN', 'line1', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="6"
-                fill="#e2e8f0"
-                stroke="#0f172a"
-                stroke-width="1.5"
-                class="group-hover/mccbl1in:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-9"
-                text-anchor="middle"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#2563eb">L1 IN</text
-              >
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl1in:scale-125 transition-transform" />
+              <text x="0" y="-9" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#2563eb">L1 IN</text>
             </g>
             <g
               class="terminal cursor-pointer group/mccbl2in"
               transform="translate({w - 28}, 14)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L2_IN", "line2", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L2_IN", "line2", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_IN', 'line2', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_IN', 'line2', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="6"
-                fill="#e2e8f0"
-                stroke="#0f172a"
-                stroke-width="1.5"
-                class="group-hover/mccbl2in:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-9"
-                text-anchor="middle"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#dc2626">L2 IN</text
-              >
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl2in:scale-125 transition-transform" />
+              <text x="0" y="-9" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#dc2626">L2 IN</text>
             </g>
 
             <!-- Load Out Terminals (Bottom) -->
             <g
               class="terminal cursor-pointer group/mccbl1out"
               transform="translate(28, {h - 14})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L1_OUT", "line1", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L1_OUT", "line1", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_OUT', 'line1', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_OUT', 'line1', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="6"
-                fill="#e2e8f0"
-                stroke="#0f172a"
-                stroke-width="1.5"
-                class="group-hover/mccbl1out:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="14"
-                text-anchor="middle"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#2563eb">L1 OUT</text
-              >
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl1out:scale-125 transition-transform" />
+              <text x="0" y="14" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#2563eb">L1 OUT</text>
             </g>
             <g
               class="terminal cursor-pointer group/mccbl2out"
               transform="translate({w - 28}, {h - 14})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L2_OUT", "line2", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "L2_OUT", "line2", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_OUT', 'line2', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_OUT', 'line2', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="6"
-                fill="#e2e8f0"
-                stroke="#0f172a"
-                stroke-width="1.5"
-                class="group-hover/mccbl2out:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="14"
-                text-anchor="middle"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#dc2626">L2 OUT</text
-              >
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl2out:scale-125 transition-transform" />
+              <text x="0" y="14" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#dc2626">L2 OUT</text>
             </g>
 
-            <!-- 4. HYBRID INVERTER -->
-          {:else if eq.type === "hybrid_inverter"}
+          <!-- 4. HYBRID INVERTER -->
+          {:else if eq.type === 'hybrid_inverter'}
             <rect
               x="0"
               y="0"
@@ -1590,42 +1144,20 @@
               height={h}
               rx="8"
               fill="#f8fafc"
-              stroke={isSelected ? "#2563eb" : "#94a3b8"}
+              stroke={isSelected ? '#2563eb' : '#94a3b8'}
               stroke-width={isSelected ? 3 : 1.5}
               class="filter drop-shadow-xl transition-colors hover:stroke-blue-400"
             />
             <!-- Top Inverter Blue Accent Header -->
             <rect x="0" y="0" width={w} height="6" rx="3" fill="#2563eb" />
             <!-- Large LCD Screen -->
-            <rect
-              x="14"
-              y="34"
-              width={w - 28}
-              height="80"
-              rx="4"
-              fill="#091428"
-              stroke="#1e293b"
-              stroke-width="1.2"
-            />
+            <rect x="14" y="34" width={w - 28} height="80" rx="4" fill="#091428" stroke="#1e293b" stroke-width="1.2" />
             <!-- Interactive Inverter Flow Schematic on Screen -->
-            <text
-              x={w / 2}
-              y="50"
-              font-size="9"
-              font-weight="bold"
-              fill="#38bdf8"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <text x={w / 2} y="50" font-size="9" font-weight="bold" fill="#38bdf8" text-anchor="middle" font-family="monospace">
               HYBRID INVERTER {eq.capacityKw || 8}kW
             </text>
             <!-- Flow Icons -->
-            <g
-              transform="translate({w / 2 - 55}, 60)"
-              font-size="7.5"
-              fill="#e2e8f0"
-              font-family="monospace"
-            >
+            <g transform="translate({w / 2 - 55}, 60)" font-size="7.5" fill="#e2e8f0" font-family="monospace">
               <text x="0" y="10">☀️ PV</text>
               <text x="36" y="10">➔ ⚡ ➔</text>
               <text x="75" y="10">🏠 LOAD</text>
@@ -1636,30 +1168,13 @@
             <!-- Status LEDs -->
             <g transform="translate(18, 126)">
               <circle cx="8" cy="0" r="3" fill="#22c55e" />
-              <text x="15" y="3" font-size="6" font-weight="bold" fill="#475569"
-                >NORMAL</text
-              >
+              <text x="15" y="3" font-size="6" font-weight="bold" fill="#475569">NORMAL</text>
               <circle cx="60" cy="0" r="3" fill="#3b82f6" />
-              <text x="67" y="3" font-size="6" font-weight="bold" fill="#475569"
-                >INVERT</text
-              >
+              <text x="67" y="3" font-size="6" font-weight="bold" fill="#475569">INVERT</text>
               <circle cx="112" cy="0" r="3" fill="#ef4444" />
-              <text
-                x="119"
-                y="3"
-                font-size="6"
-                font-weight="bold"
-                fill="#475569">ALARM</text
-              >
+              <text x="119" y="3" font-size="6" font-weight="bold" fill="#475569">ALARM</text>
             </g>
-            <text
-              x={w / 2}
-              y={h - 34}
-              font-size="8"
-              font-weight="900"
-              fill="#0f172a"
-              text-anchor="middle"
-            >
+            <text x={w / 2} y={h - 34} font-size="8" font-weight="900" fill="#0f172a" text-anchor="middle">
               {eq.label}
             </text>
 
@@ -1668,113 +1183,53 @@
             <g
               class="terminal cursor-pointer group/pv1pos"
               transform="translate(28, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV1+", "dc_pos", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV1+", "dc_pos", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1+', 'dc_pos', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1+', 'dc_pos', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.2"
-                class="group-hover/pv1pos:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#ef4444">PV+</text
-              >
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/pv1pos:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#ef4444">PV+</text>
             </g>
             <!-- PV1- -->
             <g
               class="terminal cursor-pointer group/pv1neg"
               transform="translate(56, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV1-", "dc_neg", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV1-", "dc_neg", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1-', 'dc_neg', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1-', 'dc_neg', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#0f172a"
-                stroke="#94a3b8"
-                stroke-width="1.2"
-                class="group-hover/pv1neg:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#475569">PV-</text
-              >
+              <circle r="5.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1.2" class="group-hover/pv1neg:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#475569">PV-</text>
             </g>
             <!-- BAT+ -->
             <g
               class="terminal cursor-pointer group/hybbatpos"
               transform="translate({w - 56}, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT+", "dc_pos", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT+", "dc_pos", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.2"
-                class="group-hover/hybbatpos:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#ef4444">BAT+</text
-              >
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/hybbatpos:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#ef4444">BAT+</text>
             </g>
             <!-- BAT- -->
             <g
               class="terminal cursor-pointer group/hybbatneg"
               transform="translate({w - 26}, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT-", "dc_neg", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT-", "dc_neg", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#0f172a"
-                stroke="#94a3b8"
-                stroke-width="1.2"
-                class="group-hover/hybbatneg:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#475569">BAT-</text
-              >
+              <circle r="5.5" fill="#0f172a" stroke="#94a3b8" stroke-width="1.2" class="group-hover/hybbatneg:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#475569">BAT-</text>
             </g>
 
             <!-- BOTTOM TERMINALS: AC GRID IN & AC LOAD OUT -->
@@ -1782,204 +1237,84 @@
             <g
               class="terminal cursor-pointer group/acinl"
               transform="translate(26, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_IN_L", "line1", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_IN_L", "line1", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_L', 'line1', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_L', 'line1', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5"
-                fill="#2563eb"
-                stroke="#bfdbfe"
-                stroke-width="1.2"
-                class="group-hover/acinl:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="4.5"
-                font-weight="bold"
-                fill="#2563eb">GRID L</text
-              >
+              <circle r="5" fill="#2563eb" stroke="#bfdbfe" stroke-width="1.2" class="group-hover/acinl:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#2563eb">GRID L</text>
             </g>
             <!-- AC_IN_N -->
             <g
               class="terminal cursor-pointer group/acinn"
               transform="translate(50, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_IN_N",
-                  "neutral",
-                  e,
-                )}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_IN_N",
-                  "neutral",
-                  e,
-                )}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_N', 'neutral', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_N', 'neutral', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5"
-                fill="#0284c7"
-                stroke="#e0f2fe"
-                stroke-width="1.2"
-                class="group-hover/acinn:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="4.5"
-                font-weight="bold"
-                fill="#0284c7">GRID N</text
-              >
+              <circle r="5" fill="#0284c7" stroke="#e0f2fe" stroke-width="1.2" class="group-hover/acinn:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#0284c7">GRID N</text>
             </g>
             <!-- AC_IN_PE -->
             <g
               class="terminal cursor-pointer group/acinpe"
               transform="translate(74, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_IN_PE", "earth", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_IN_PE", "earth", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_PE', 'earth', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_PE', 'earth', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5"
-                fill="#16a34a"
-                stroke="#bbf7d0"
-                stroke-width="1.2"
-                class="group-hover/acinpe:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="4.5"
-                font-weight="bold"
-                fill="#16a34a">PE</text
-              >
+              <circle r="5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/acinpe:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#16a34a">PE</text>
             </g>
 
             <!-- AC_OUT_L -->
             <g
               class="terminal cursor-pointer group/acoutl"
               transform="translate({w - 74}, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_OUT_L", "line1", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_OUT_L", "line1", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.2"
-                class="group-hover/acoutl:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="4.5"
-                font-weight="bold"
-                fill="#dc2626">LOAD L</text
-              >
+              <circle r="5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/acoutl:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#dc2626">LOAD L</text>
             </g>
             <!-- AC_OUT_N -->
             <g
               class="terminal cursor-pointer group/acoutn"
               transform="translate({w - 50}, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_N",
-                  "neutral",
-                  e,
-                )}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_N",
-                  "neutral",
-                  e,
-                )}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5"
-                fill="#0284c7"
-                stroke="#e0f2fe"
-                stroke-width="1.2"
-                class="group-hover/acoutn:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="4.5"
-                font-weight="bold"
-                fill="#0284c7">LOAD N</text
-              >
+              <circle r="5" fill="#0284c7" stroke="#e0f2fe" stroke-width="1.2" class="group-hover/acoutn:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#0284c7">LOAD N</text>
             </g>
             <!-- AC_OUT_PE -->
             <g
               class="terminal cursor-pointer group/acoutpe"
               transform="translate({w - 26}, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_PE",
-                  "earth",
-                  e,
-                )}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_PE",
-                  "earth",
-                  e,
-                )}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5"
-                fill="#16a34a"
-                stroke="#bbf7d0"
-                stroke-width="1.2"
-                class="group-hover/acoutpe:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="4.5"
-                font-weight="bold"
-                fill="#16a34a">PE</text
-              >
+              <circle r="5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/acoutpe:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#16a34a">PE</text>
             </g>
 
-            <!-- 5. OFFGRID INVERTER -->
-          {:else if eq.type === "offgrid_inverter"}
+          <!-- 5. OFFGRID INVERTER -->
+          {:else if eq.type === 'offgrid_inverter'}
             <rect
               x="0"
               y="0"
@@ -1987,62 +1322,23 @@
               height={h}
               rx="8"
               fill="#0f172a"
-              stroke={isSelected ? "#38bdf8" : "#334155"}
+              stroke={isSelected ? '#38bdf8' : '#334155'}
               stroke-width={isSelected ? 3 : 1.5}
               class="filter drop-shadow-xl transition-colors hover:stroke-cyan-400"
             />
             <!-- Cyan Offgrid Accent Bar -->
             <rect x="0" y="0" width={w} height="5" rx="2" fill="#06b6d4" />
             <!-- Inverter Screen -->
-            <rect
-              x="14"
-              y="32"
-              width={w - 28}
-              height="70"
-              rx="4"
-              fill="#0284c7"
-              fill-opacity="0.15"
-              stroke="#0284c7"
-              stroke-width="1"
-            />
-            <text
-              x={w / 2}
-              y="48"
-              font-size="8.5"
-              font-weight="900"
-              fill="#38bdf8"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <rect x="14" y="32" width={w - 28} height="70" rx="4" fill="#0284c7" fill-opacity="0.15" stroke="#0284c7" stroke-width="1" />
+            <text x={w / 2} y="48" font-size="8.5" font-weight="900" fill="#38bdf8" text-anchor="middle" font-family="monospace">
               OFF-GRID {eq.capacityKw || 5}kW
             </text>
             <!-- Sine Wave Graphic -->
-            <path
-              d="M {w / 2 - 25} 66 Q {w / 2 - 12.5} 56, {w / 2} 66 T {w / 2 +
-                25} 66"
-              fill="none"
-              stroke="#38bdf8"
-              stroke-width="2"
-            />
-            <text
-              x={w / 2}
-              y="82"
-              font-size="6"
-              font-weight="bold"
-              fill="#bae6fd"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <path d="M {w/2 - 25} 66 Q {w/2 - 12.5} 56, {w/2} 66 T {w/2 + 25} 66" fill="none" stroke="#38bdf8" stroke-width="2" />
+            <text x={w / 2} y="82" font-size="6" font-weight="bold" fill="#bae6fd" text-anchor="middle" font-family="monospace">
               PURE SINE WAVE (48V)
             </text>
-            <text
-              x={w / 2}
-              y={h - 32}
-              font-size="8"
-              font-weight="bold"
-              fill="#f8fafc"
-              text-anchor="middle"
-            >
+            <text x={w / 2} y={h - 32} font-size="8" font-weight="bold" fill="#f8fafc" text-anchor="middle">
               {eq.label}
             </text>
 
@@ -2050,228 +1346,97 @@
             <g
               class="terminal cursor-pointer group/ogpvpos"
               transform="translate(32, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV+", "dc_pos", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV+", "dc_pos", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.2"
-                class="group-hover/ogpvpos:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#ef4444">PV+</text
-              >
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogpvpos:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#ef4444">PV+</text>
             </g>
             <g
               class="terminal cursor-pointer group/ogpvneg"
               transform="translate(60, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV-", "dc_neg", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "PV-", "dc_neg", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#334155"
-                stroke="#94a3b8"
-                stroke-width="1.2"
-                class="group-hover/ogpvneg:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#cbd5e1">PV-</text
-              >
+              <circle r="5.5" fill="#334155" stroke="#94a3b8" stroke-width="1.2" class="group-hover/ogpvneg:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#cbd5e1">PV-</text>
             </g>
             <g
               class="terminal cursor-pointer group/ogbatpos"
               transform="translate({w - 60}, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT+", "dc_pos", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT+", "dc_pos", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.2"
-                class="group-hover/ogbatpos:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#ef4444">BAT+</text
-              >
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogbatpos:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#ef4444">BAT+</text>
             </g>
             <g
               class="terminal cursor-pointer group/ogbatneg"
               transform="translate({w - 32}, 16)"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT-", "dc_neg", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "BAT-", "dc_neg", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#334155"
-                stroke="#94a3b8"
-                stroke-width="1.2"
-                class="group-hover/ogbatneg:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="-8"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#cbd5e1">BAT-</text
-              >
+              <circle r="5.5" fill="#334155" stroke="#94a3b8" stroke-width="1.2" class="group-hover/ogbatneg:scale-125 transition-transform" />
+              <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#cbd5e1">BAT-</text>
             </g>
 
             <!-- BOTTOM TERMINALS: AC OUT (L, N, PE) -->
             <g
               class="terminal cursor-pointer group/ogacoutl"
               transform="translate(36, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_OUT_L", "line1", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "AC_OUT_L", "line1", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#dc2626"
-                stroke="#fecaca"
-                stroke-width="1.2"
-                class="group-hover/ogacoutl:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#dc2626">LOAD L</text
-              >
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogacoutl:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="5" font-weight="bold" fill="#dc2626">LOAD L</text>
             </g>
             <g
               class="terminal cursor-pointer group/ogacoutn"
               transform="translate(72, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_N",
-                  "neutral",
-                  e,
-                )}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_N",
-                  "neutral",
-                  e,
-                )}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#0284c7"
-                stroke="#e0f2fe"
-                stroke-width="1.2"
-                class="group-hover/ogacoutn:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#0284c7">LOAD N</text
-              >
+              <circle r="5.5" fill="#0284c7" stroke="#e0f2fe" stroke-width="1.2" class="group-hover/ogacoutn:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="5" font-weight="bold" fill="#0284c7">LOAD N</text>
             </g>
             <g
               class="terminal cursor-pointer group/ogacoutpe"
               transform="translate(108, {h - 16})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_PE",
-                  "earth",
-                  e,
-                )}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(
-                  eq.id,
-                  "AC_OUT_PE",
-                  "earth",
-                  e,
-                )}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle
-                r="5.5"
-                fill="#16a34a"
-                stroke="#bbf7d0"
-                stroke-width="1.2"
-                class="group-hover/ogacoutpe:scale-125 transition-transform"
-              />
-              <text
-                x="0"
-                y="12"
-                text-anchor="middle"
-                font-size="5"
-                font-weight="bold"
-                fill="#16a34a">PE</text
-              >
+              <circle r="5.5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/ogacoutpe:scale-125 transition-transform" />
+              <text x="0" y="12" text-anchor="middle" font-size="5" font-weight="bold" fill="#16a34a">PE</text>
             </g>
 
-            <!-- 6. DETACHED FIELD CONNECTION BLOCK (Junction / External I/O) -->
+          <!-- 6. DETACHED FIELD CONNECTION BLOCK (Junction / External I/O) -->
           {:else}
-            {@const isTop = eq.terminalPosition !== "bottom"}
+            {@const isTop = eq.terminalPosition !== 'bottom'}
             {@const termY = isTop ? 14 : h - 14}
-            {@const words = eq.label.split(" ")}
-            {@const line1 =
-              words.length > 1 && eq.label.length > 10
-                ? words.slice(0, Math.ceil(words.length / 2)).join(" ")
-                : eq.label}
-            {@const line2 =
-              words.length > 1 && eq.label.length > 10
-                ? words.slice(Math.ceil(words.length / 2)).join(" ")
-                : ""}
+            {@const words = eq.label.split(' ')}
+            {@const line1 = words.length > 1 && eq.label.length > 10 ? words.slice(0, Math.ceil(words.length / 2)).join(' ') : eq.label}
+            {@const line2 = words.length > 1 && eq.label.length > 10 ? words.slice(Math.ceil(words.length / 2)).join(' ') : ''}
 
             <rect
               x="0"
@@ -2280,166 +1445,65 @@
               height={h}
               rx="6"
               fill="#ffffff"
-              stroke={isSelected ? "#2563eb" : "#94a3b8"}
+              stroke={isSelected ? '#2563eb' : '#94a3b8'}
               stroke-width={isSelected ? 3 : 1.5}
               class="filter drop-shadow-md hover:stroke-amber-400 transition-colors"
             />
             <rect x="0" y="0" width={w} height="4" rx="2" fill="#f59e0b" />
-            <rect
-              x={w / 2 - 25}
-              y={isTop ? 27 : 7}
-              width="50"
-              height="9"
-              rx="2"
-              fill="#fef3c7"
-              stroke="#f59e0b"
-              stroke-width="0.6"
-            />
-            <text
-              x={w / 2}
-              y={isTop ? 33.5 : 13.5}
-              font-size="5"
-              font-weight="900"
-              fill="#b45309"
-              text-anchor="middle"
-              font-family="monospace"
-            >
+            <rect x={w / 2 - 25} y={isTop ? 27 : 7} width="50" height="9" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="0.6" />
+            <text x={w / 2} y={isTop ? 33.5 : 13.5} font-size="5" font-weight="900" fill="#b45309" text-anchor="middle" font-family="monospace">
               FIELD I/O
             </text>
 
             {#if line2}
-              <text
-                x={w / 2}
-                y={isTop ? 46 : 28}
-                font-size="7.5"
-                font-weight="900"
-                fill="#0f172a"
-                text-anchor="middle"
-                font-family="system-ui, sans-serif"
-              >
+              <text x={w / 2} y={isTop ? 46 : 28} font-size="7.5" font-weight="900" fill="#0f172a" text-anchor="middle" font-family="system-ui, sans-serif">
                 {line1}
               </text>
-              <text
-                x={w / 2}
-                y={isTop ? 56 : 38}
-                font-size="7.5"
-                font-weight="900"
-                fill="#0f172a"
-                text-anchor="middle"
-                font-family="system-ui, sans-serif"
-              >
+              <text x={w / 2} y={isTop ? 56 : 38} font-size="7.5" font-weight="900" fill="#0f172a" text-anchor="middle" font-family="system-ui, sans-serif">
                 {line2}
               </text>
             {:else}
-              <text
-                x={w / 2}
-                y={isTop ? 50 : 33}
-                font-size="8.5"
-                font-weight="900"
-                fill="#0f172a"
-                text-anchor="middle"
-                font-family="system-ui, sans-serif"
-              >
+              <text x={w / 2} y={isTop ? 50 : 33} font-size="8.5" font-weight="900" fill="#0f172a" text-anchor="middle" font-family="system-ui, sans-serif">
                 {line1}
               </text>
             {/if}
 
-            <text
-              x={w / 2}
-              y={isTop ? 66 : 48}
-              font-size="5.5"
-              font-weight="bold"
-              fill="#64748b"
-              text-anchor="middle"
-              font-family="system-ui, sans-serif"
-            >
-              {eq.description || "230V 2-Wire"}
+            <text x={w / 2} y={isTop ? 66 : 48} font-size="5.5" font-weight="bold" fill="#64748b" text-anchor="middle" font-family="system-ui, sans-serif">
+              {eq.description || '230V 2-Wire'}
             </text>
 
             <!-- TERMINAL 1 (Line 1) -->
             <g
               class="terminal cursor-pointer group/term1"
               transform="translate(24, {termY})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "1", "line1", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "1", "line1", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, '1', 'line1', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, '1', 'line1', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
               <title>Terminal 1 (L / Line 1)</title>
-              <circle
-                r="6"
-                fill="#e2e8f0"
-                stroke="#64748b"
-                stroke-width="1.5"
-                class="transition-all group-hover/term1:stroke-blue-500 group-hover/term1:scale-125"
-              />
-              <line
-                x1="-3"
-                y1="-2"
-                x2="3"
-                y2="2"
-                stroke="#475569"
-                stroke-width="1.5"
-              />
-              <circle
-                r="4"
-                fill="#3b82f6"
-                class="opacity-0 group-hover/term1:opacity-100 transition-opacity"
-              />
-              <text
-                x="0"
-                y={isTop ? -9 : 14}
-                text-anchor="middle"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#2563eb">1 (L)</text
-              >
+              <circle r="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" class="transition-all group-hover/term1:stroke-blue-500 group-hover/term1:scale-125" />
+              <line x1="-3" y1="-2" x2="3" y2="2" stroke="#475569" stroke-width="1.5" />
+              <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term1:opacity-100 transition-opacity" />
+              <text x="0" y={isTop ? -9 : 14} text-anchor="middle" font-size="5.5" font-weight="bold" fill="#2563eb">1 (L)</text>
             </g>
 
             <!-- TERMINAL 2 (Neutral / Line 2) -->
             <g
               class="terminal cursor-pointer group/term2"
               transform="translate({w - 24}, {termY})"
-              onmousedown={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "2", "neutral", e)}
-              onclick={(e) =>
-                handleEquipmentTerminalMouseDown(eq.id, "2", "neutral", e)}
+              onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, '2', 'neutral', e)}
+              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, '2', 'neutral', e)}
               role="button"
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
               <title>Terminal 2 (N / Line 2)</title>
-              <circle
-                r="6"
-                fill="#e2e8f0"
-                stroke="#64748b"
-                stroke-width="1.5"
-                class="transition-all group-hover/term2:stroke-blue-500 group-hover/term2:scale-125"
-              />
-              <line
-                x1="-3"
-                y1="-2"
-                x2="3"
-                y2="2"
-                stroke="#475569"
-                stroke-width="1.5"
-              />
-              <circle
-                r="4"
-                fill="#3b82f6"
-                class="opacity-0 group-hover/term2:opacity-100 transition-opacity"
-              />
-              <text
-                x="0"
-                y={isTop ? -9 : 14}
-                text-anchor="middle"
-                font-size="5.5"
-                font-weight="bold"
-                fill="#dc2626">2 (N)</text
-              >
+              <circle r="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" class="transition-all group-hover/term2:stroke-blue-500 group-hover/term2:scale-125" />
+              <line x1="-3" y1="-2" x2="3" y2="2" stroke="#475569" stroke-width="1.5" />
+              <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term2:opacity-100 transition-opacity" />
+              <text x="0" y={isTop ? -9 : 14} text-anchor="middle" font-size="5.5" font-weight="bold" fill="#dc2626">2 (N)</text>
             </g>
           {/if}
         </g>
@@ -2447,32 +1511,19 @@
 
       <!-- ROUTED WIRES -->
       {#each panelStore.wires as wire}
-        {@const src = getTerminalCoords(
-          wire.sourceDeviceId,
-          wire.sourceTerminalId,
-        )}
-        {@const tgt = getTerminalCoords(
-          wire.targetDeviceId,
-          wire.targetTerminalId,
-        )}
+        {@const src = getTerminalCoords(wire.sourceDeviceId, wire.sourceTerminalId)}
+        {@const tgt = getTerminalCoords(wire.targetDeviceId, wire.targetTerminalId)}
         {#if src && tgt}
           {@const gauge = getGaugeDef(wire.gaugeMetric)}
-          {@const isSelected =
-            panelStore.selectedType === "wire" &&
-            panelStore.selectedId === wire.id}
-          {@const pathD = generateWirePath(
-            src,
-            tgt,
-            wire.waypoints || [],
-            wire.routingMode || "orthogonal",
-          )}
+          {@const isSelected = panelStore.selectedType === 'wire' && panelStore.selectedId === wire.id}
+          {@const pathD = generateWirePath(src, tgt, wire.waypoints || [], wire.routingMode || 'orthogonal')}
           {@const isDark = isDarkColor(wire.color)}
 
           <g
             class="wire-group cursor-pointer group"
             onclick={(e) => {
               e.stopPropagation();
-              panelStore.select("wire", wire.id);
+              panelStore.select('wire', wire.id);
             }}
             ondblclick={(e) => handleWireDoubleClick(wire.id, e)}
             role="button"
@@ -2482,7 +1533,7 @@
             <path
               d={pathD}
               fill="none"
-              stroke={isSelected ? "#38bdf8" : "transparent"}
+              stroke={isSelected ? '#38bdf8' : 'transparent'}
               stroke-width={gauge.renderWidth + 7}
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -2527,7 +1578,7 @@
             {/if}
 
             <!-- Secondary stripe for Green/Yellow ground wires -->
-            {#if wire.role === "earth" && wire.standard === "IEC"}
+            {#if wire.role === 'earth' && wire.standard === 'IEC'}
               <path
                 d={pathD}
                 fill="none"
@@ -2545,7 +1596,7 @@
               cy={src.y}
               r={isDark ? 4 : 3.5}
               fill="#ffffff"
-              stroke={isDark ? "#64748b" : wire.color}
+              stroke={isDark ? '#64748b' : wire.color}
               stroke-width={isDark ? 2 : 1.5}
             />
             <circle
@@ -2553,7 +1604,7 @@
               cy={tgt.y}
               r={isDark ? 4 : 3.5}
               fill="#ffffff"
-              stroke={isDark ? "#64748b" : wire.color}
+              stroke={isDark ? '#64748b' : wire.color}
               stroke-width={isDark ? 2 : 1.5}
             />
 
@@ -2563,8 +1614,7 @@
                 <g
                   class="waypoint-handle cursor-move"
                   transform="translate({wp.x}, {wp.y})"
-                  onmousedown={(e) =>
-                    handleWaypointMouseDown(wire.id, wpIdx, e)}
+                  onmousedown={(e) => handleWaypointMouseDown(wire.id, wpIdx, e)}
                   oncontextmenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -2591,24 +1641,15 @@
 
       <!-- RUBBERBAND WIRE DRAFT (Active mouse connection - Pointer Events None) -->
       {#if panelStore.wireDraft}
-        {@const srcCoords = getTerminalCoords(
-          panelStore.wireDraft.sourceDeviceId,
-          panelStore.wireDraft.sourceTerminalId,
-        )}
+        {@const srcCoords = getTerminalCoords(panelStore.wireDraft.sourceDeviceId, panelStore.wireDraft.sourceTerminalId)}
         {#if srcCoords}
           {@const draftGauge = getGaugeDef(panelStore.activeWireGauge)}
-          {@const draftColor = getWireColor(
-            panelStore.activeWireRole,
-            panelStore.activePanel.wireStandard,
-          )}
+          {@const draftColor = getWireColor(panelStore.activeWireRole, panelStore.activePanel.wireStandard)}
           {@const draftPath = generateWirePath(
             srcCoords,
-            {
-              x: panelStore.wireDraft.currentX,
-              y: panelStore.wireDraft.currentY,
-            },
+            { x: panelStore.wireDraft.currentX, y: panelStore.wireDraft.currentY },
             [],
-            panelStore.activeWireRouting,
+            panelStore.activeWireRouting
           )}
           {@const isDraftDark = isDarkColor(draftColor.hex)}
           <g class="pointer-events-none" pointer-events="none">
@@ -2633,12 +1674,7 @@
               class="animate-pulse"
             />
             <circle cx={srcCoords.x} cy={srcCoords.y} r="4" fill="#3b82f6" />
-            <circle
-              cx={panelStore.wireDraft.currentX}
-              cy={panelStore.wireDraft.currentY}
-              r="5"
-              fill="#60a5fa"
-            />
+            <circle cx={panelStore.wireDraft.currentX} cy={panelStore.wireDraft.currentY} r="5" fill="#60a5fa" />
           </g>
         {/if}
       {/if}
@@ -2646,16 +1682,10 @@
   </svg>
 
   <!-- Canvas Quick Zoom & Reset Floating Controls -->
-  <div
-    class="absolute bottom-4 left-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur border border-slate-700 p-1.5 rounded-lg shadow-xl text-slate-300"
-  >
+  <div class="absolute bottom-4 left-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur border border-slate-700 p-1.5 rounded-lg shadow-xl text-slate-300">
     <button
       class="px-2.5 py-1 text-xs hover:bg-slate-700 rounded transition font-mono font-semibold"
-      onclick={() =>
-        (panelStore.zoom = Math.max(
-          0.4,
-          Number((panelStore.zoom - 0.1).toFixed(2)),
-        ))}
+      onclick={() => panelStore.zoom = Math.max(0.4, Number((panelStore.zoom - 0.1).toFixed(2)))}
       title="Zoom Out"
     >
       -
@@ -2665,11 +1695,7 @@
     </span>
     <button
       class="px-2.5 py-1 text-xs hover:bg-slate-700 rounded transition font-mono font-semibold"
-      onclick={() =>
-        (panelStore.zoom = Math.min(
-          2.5,
-          Number((panelStore.zoom + 0.1).toFixed(2)),
-        ))}
+      onclick={() => panelStore.zoom = Math.min(2.5, Number((panelStore.zoom + 0.1).toFixed(2)))}
       title="Zoom In"
     >
       +
