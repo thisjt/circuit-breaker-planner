@@ -69,6 +69,7 @@ export interface DeviceDefinition {
 export interface PlacedDevice {
   id: string;
   typeId: string;
+  panelId?: string; // id of the breaker panel this device is placed on
   railIndex: number;
   slotIndex: number; // 0 to (slotsPerRail - widthModules)
   widthModules: number;
@@ -85,7 +86,7 @@ export interface WirePoint {
 
 export interface WireConnection {
   id: string;
-  sourceDeviceId: string; // device id, or "PE_BAR" or "N_BAR"
+  sourceDeviceId: string; // device id, equipment id, or "PE_BAR", "N_BAR", "PE_BAR_<panelId>", "N_BAR_<panelId>"
   sourceTerminalId: string;
   targetDeviceId: string;
   targetTerminalId: string;
@@ -100,6 +101,7 @@ export interface WireConnection {
 
 export interface CombBusbar {
   id: string;
+  panelId?: string; // id of the breaker panel this busbar belongs to
   railIndex: number;
   position: TerminalPosition; // 'top' | 'bottom'
   busbarType: '1P' | '1P+N' | '2P' | '3P';
@@ -108,19 +110,55 @@ export interface CombBusbar {
   phaseOrder?: ('L1' | 'L2' | 'L3' | 'N')[];
 }
 
-export interface FieldBlock {
+export type FreeEquipmentType =
+  | 'solar_panel'
+  | 'battery'
+  | 'mccb'
+  | 'hybrid_inverter'
+  | 'offgrid_inverter'
+  | 'field_block';
+
+export interface FreeEquipment {
   id: string;
-  label: string; // e.g. "From House", "To Airconditioner"
-  description?: string; // e.g. "230V 2-Wire", "1.5HP AC"
+  type: FreeEquipmentType;
+  label: string; // e.g. "Solar Array 1", "LiFePO4 Bank", "Main MCCB 200A", "Hybrid Inverter 8kW"
+  description?: string; // e.g. "550W Mono", "48V 100Ah", "200A 36kA"
   x: number;
   y: number;
-  width?: number; // default 88
-  height?: number; // default 76
-  terminalPosition?: 'top' | 'bottom'; // default 'top'
+  width?: number;
+  height?: number;
+  terminalPosition?: 'top' | 'bottom';
+
+  // Solar Panel authorable properties:
+  powerWatts?: number; // Rated Power (W)
+  voltage?: number; // Vmp or rated Voltage (V)
+  current?: number; // Imp or rated Current (A)
+
+  // Battery authorable properties:
+  batteryVoltage?: number; // Battery nominal Voltage (V, e.g. 12, 24, 48, 51.2)
+  capacityAh?: number; // Capacity in Ampere-hours (Ah, e.g. 100, 200, 280)
+  whCalculated?: number; // Auto-calculated Wh = batteryVoltage * capacityAh
+  chemistry?: string; // e.g. "LiFePO4", "Lithium-Ion", "Lead-Acid"
+
+  // MCCB authorable properties:
+  ratedAmps?: number; // Rated trip Current (A, e.g. 63, 100, 125, 160, 200, 250, 400)
+  poles?: 2 | 3 | 4; // Number of poles (default 2)
+  breakingCapacityKa?: number; // Breaking capacity (kA, e.g. 25, 36, 50)
+
+  // Inverter authorable properties (Hybrid & Offgrid):
+  capacityKw?: number; // Inverter capacity in kW (e.g. 3, 5, 8, 10, 12)
+  inverterType?: 'hybrid' | 'offgrid';
+  systemVoltage?: number; // DC Battery nominal voltage (e.g. 24V or 48V)
 }
 
+// Backward compatibility alias for FieldBlock
+export type FieldBlock = FreeEquipment;
+
 export interface PanelConfig {
+  id: string; // unique identifier for the breaker panel, e.g. "panel-1"
   name: string;
+  x: number; // canvas X coordinate of the panel enclosure
+  y: number; // canvas Y coordinate of the panel enclosure
   rows: number; // number of DIN rails
   slotsPerRow: number; // number of 18mm modules per rail
   railSpacing?: number; // center-to-center distance between DIN rails in px (default 230)

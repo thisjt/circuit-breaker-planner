@@ -13,12 +13,13 @@
 
   let activeTab = $state<'bom' | 'wires'>('bom');
 
-  // Grouped devices for BOM
+  // Grouped devices & equipment for BOM
   const bomRows = $derived(() => {
     const map = new Map<string, {
+      panel: string;
       name: string;
       category: string;
-      width: number;
+      width: string;
       amps: string;
       desc: string;
       count: number;
@@ -26,14 +27,40 @@
 
     for (const d of panelStore.devices) {
       const def = getDeviceDef(d.typeId);
-      const key = `${d.typeId}_${d.ratedAmps || ''}`;
+      const panel = panelStore.panels.find((p) => p.id === d.panelId) || panelStore.activePanel;
+      const key = `${d.panelId || 'panel-1'}_${d.typeId}_${d.ratedAmps || ''}`;
       if (!map.has(key)) {
         map.set(key, {
+          panel: panel.name,
           name: def?.name || d.customLabel,
-          category: def?.category || 'other',
-          width: d.widthModules,
-          amps: d.ratedAmps ? `${d.ratedAmps}A` : '-',
+          category: def?.category || 'modular',
+          width: `${d.widthModules} TE (${d.widthModules * 18}mm)`,
+          amps: d.ratedAmps ? `${d.curve || ''}${d.ratedAmps}A` : '-',
           desc: d.circuitDescription,
+          count: 0
+        });
+      }
+      map.get(key)!.count += 1;
+    }
+
+    for (const eq of panelStore.equipment) {
+      const key = `eq_${eq.type}_${eq.label}`;
+      let specs = '-';
+      if (eq.type === 'solar_panel') specs = `${eq.powerWatts || 550}W, ${eq.voltage || 41.5}V, ${eq.current || 13.25}A`;
+      else if (eq.type === 'battery') specs = `${eq.batteryVoltage || 51.2}V ${eq.capacityAh || 100}Ah (${((eq.whCalculated || 5120) / 1000).toFixed(2)}kWh)`;
+      else if (eq.type === 'mccb') specs = `${eq.ratedAmps || 160}A ${eq.poles || 2}P (${eq.breakingCapacityKa || 36}kA)`;
+      else if (eq.type === 'hybrid_inverter') specs = `${eq.capacityKw || 8}kW Hybrid (${eq.systemVoltage || 48}V)`;
+      else if (eq.type === 'offgrid_inverter') specs = `${eq.capacityKw || 5}kW Offgrid (${eq.systemVoltage || 48}V)`;
+      else if (eq.type === 'field_block') specs = '230V 2-Terminal Block';
+
+      if (!map.has(key)) {
+        map.set(key, {
+          panel: 'Freestanding',
+          name: eq.label,
+          category: eq.type.replace('_', ' '),
+          width: `${eq.width || 100}x${eq.height || 100}px`,
+          amps: specs,
+          desc: eq.description || '-',
           count: 0
         });
       }
@@ -42,6 +69,10 @@
 
     return Array.from(map.values());
   });
+
+  const totalItemCount = $derived(
+    panelStore.devices.length + panelStore.equipment.length
+  );
 
   function downloadBOM() {
     const csv = panelStore.exportBOMCSV();
@@ -68,7 +99,7 @@
 
 {#if isOpen}
   <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl text-slate-200">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl max-h-[85vh] flex flex-col shadow-2xl text-slate-200">
       <!-- Header -->
       <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -77,10 +108,10 @@
           </div>
           <div>
             <h2 class="text-base font-bold text-slate-100">
-              Bill of Materials & Schedules
+              Bill of Materials & Wiring Schedules
             </h2>
             <p class="text-xs text-slate-400">
-              Procurement quantities and panel wiring cut-lists.
+              Procurement quantities across {panelStore.panels.length} panel{panelStore.panels.length > 1 ? 's' : ''} & freestanding equipment, plus cut-lists.
             </p>
           </div>
         </div>
@@ -100,7 +131,7 @@
             class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {activeTab === 'bom' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}"
             onclick={() => activeTab = 'bom'}
           >
-            Bill of Materials ({panelStore.devices.length} Units)
+            Bill of Materials ({totalItemCount} Items)
           </button>
           <button
             class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {activeTab === 'wires' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}"
@@ -137,10 +168,11 @@
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px]">
-                <th class="py-2.5 px-3">Component Name</th>
+                <th class="py-2.5 px-3">Location / Panel</th>
+                <th class="py-2.5 px-3">Component / Equipment</th>
                 <th class="py-2.5 px-3">Category</th>
-                <th class="py-2.5 px-3">Width</th>
-                <th class="py-2.5 px-3">Rating</th>
+                <th class="py-2.5 px-3">Dimensions / TE</th>
+                <th class="py-2.5 px-3">Rating / Specs</th>
                 <th class="py-2.5 px-3">Description</th>
                 <th class="py-2.5 px-3 text-right">Quantity</th>
               </tr>
@@ -148,9 +180,10 @@
             <tbody class="divide-y divide-slate-800/60">
               {#each bomRows() as item}
                 <tr class="hover:bg-slate-800/40 transition">
+                  <td class="py-2.5 px-3 font-mono text-purple-400 text-[11px]">{item.panel}</td>
                   <td class="py-2.5 px-3 font-semibold text-slate-100">{item.name}</td>
                   <td class="py-2.5 px-3 uppercase text-[10px] text-slate-400 font-mono">{item.category}</td>
-                  <td class="py-2.5 px-3 font-mono text-slate-300">{item.width} TE ({item.width * 18}mm)</td>
+                  <td class="py-2.5 px-3 font-mono text-slate-300">{item.width}</td>
                   <td class="py-2.5 px-3 font-mono text-blue-400">{item.amps}</td>
                   <td class="py-2.5 px-3 text-slate-400">{item.desc || '-'}</td>
                   <td class="py-2.5 px-3 text-right font-bold text-slate-100">{item.count}</td>
@@ -158,8 +191,8 @@
               {/each}
               {#if bomRows().length === 0}
                 <tr>
-                  <td colspan="6" class="text-center py-8 text-slate-500">
-                    No components placed in enclosure.
+                  <td colspan="7" class="text-center py-8 text-slate-500">
+                    No components or equipment placed yet.
                   </td>
                 </tr>
               {/if}
@@ -179,16 +212,18 @@
             </thead>
             <tbody class="divide-y divide-slate-800/60">
               {#each panelStore.wires as wire}
-                {@const srcDev = panelStore.devices.find((d: PlacedDevice) => d.id === wire.sourceDeviceId)}
-                {@const tgtDev = panelStore.devices.find((d: PlacedDevice) => d.id === wire.targetDeviceId)}
+                {@const srcDev = panelStore.devices.find((d: PlacedDevice) => d.id === wire.sourceDeviceId) || panelStore.equipment.find((e) => e.id === wire.sourceDeviceId)}
+                {@const tgtDev = panelStore.devices.find((d: PlacedDevice) => d.id === wire.targetDeviceId) || panelStore.equipment.find((e) => e.id === wire.targetDeviceId)}
+                {@const srcName = (srcDev as any)?.label || (srcDev as any)?.customLabel || wire.sourceDeviceId}
+                {@const tgtName = (tgtDev as any)?.label || (tgtDev as any)?.customLabel || wire.targetDeviceId}
                 <tr class="hover:bg-slate-800/40 transition font-mono">
                   <td class="py-2.5 px-3 text-slate-400 text-[10px]">{wire.id}</td>
                   <td class="py-2.5 px-3">
-                    <span class="text-blue-400 font-bold">{srcDev?.customLabel || wire.sourceDeviceId}</span>
+                    <span class="text-blue-400 font-bold">{srcName}</span>
                     <span class="text-slate-500"> ({wire.sourceTerminalId})</span>
                   </td>
                   <td class="py-2.5 px-3">
-                    <span class="text-emerald-400 font-bold">{tgtDev?.customLabel || wire.targetDeviceId}</span>
+                    <span class="text-emerald-400 font-bold">{tgtName}</span>
                     <span class="text-slate-500"> ({wire.targetTerminalId})</span>
                   </td>
                   <td class="py-2.5 px-3 uppercase text-[10px] text-slate-300">{wire.role}</td>
@@ -215,4 +250,3 @@
     </div>
   </div>
 {/if}
-

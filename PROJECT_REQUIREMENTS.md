@@ -30,33 +30,41 @@ Users can define panel specifications (DIN rails, rows, and module widths), drag
 
 ## 3. Functional Requirements
 
-### 3.1 Panel & DIN Rail Enclosure Setup
-1. **Enclosure Sizing**:
-   - Number of horizontal DIN rail tiers/rows (e.g., 1 to 6 rows).
-   - Module width per rail, measured in standard DIN units (**1 TE / Module = 18 mm**; typical panels range from 4 to 24 modules per row).
+### 3.1 Multi-Panel & DIN Rail Enclosure Setup
+1. **Multi-Panel Planning Canvas**:
+   - Multiple breaker panels / distribution boards can be created, arranged, and interconnected on a single shared infinite canvas.
+   - Each panel has independent dimensions: rows (1 to 6 tiers), module capacity (4 to 24 TE per row), rail spacing (180px–380px), wire gutters, and brass busbar strips.
+   - Interactive panel repositioning via header drag-handles with automatic spatial offsets for all hosted DIN devices, rails, and busbars.
+   - Point-to-point cross-panel wiring (e.g., Main Distribution Board feeder to Solar Sub-Panel incomer).
+2. **Enclosure Sizing & Presets**:
+   - Presets for common consumer units (1-Row 8M/12M, 2-Row 24M, 3-Row 36M, 4-Row 48M, custom).
    - Configurable DIN rail vertical spacing / distance between rails (180px–380px, adjusting wire gutter clearance from compact domestic boxes to deep industrial enclosures).
-   - Presets for common consumer units (e.g., 1-Row 8M/12M, 2-Row 24M, 3-Row 36M, 4-Row 48M, custom).
-2. **Wire Gutters & Accessories**:
+3. **Wire Gutters & Accessories**:
    - Configurable wiring gutters (top, bottom, and side duct spacing).
-   - Top/Bottom grounding (PE) and neutral (N) terminal brass busbar strips.
+   - Dedicated Top grounding (PE) and bottom neutral (N) terminal brass busbar strips per panel (`PE_BAR_<panelId>`, `N_BAR_<panelId>`).
    - Enclosure cover view toggle (shows cutout window and dead-front panel labels).
 
-### 3.2 Modular Component Library
-The application provides a library of DIN rail-mountable devices with accurate module widths (TE) and terminal connection points.
+### 3.2 Modular DIN & Freestanding Equipment Library
+The application provides a comprehensive library of DIN rail-mountable devices and freestanding system equipment with accurate connection terminals.
 
-#### Built-in Device Types:
-| Category | Device Examples | Width (TE) | Typical Terminals |
+#### Built-in Device & Equipment Types:
+| Category | Component Examples | Placement | Typical Terminals / Authorable Parameters |
 | :--- | :--- | :--- | :--- |
-| **Main Switches** | 2-Pole / 4-Pole Isolator (63A, 100A) | 2M / 4M | In: L1, L2, L3, N; Out: L1, L2, L3, N |
-| **RCD / RCCB** | 2-Pole / 4-Pole (30mA, 100mA, 300mA Type A/AC/B) | 2M / 4M | Line In, Neutral In, Line Out, Neutral Out |
-| **MCB** | 1-Pole, 2-Pole, 3-Pole (B, C, D curves; 6A–63A) | 1M, 2M, 3M | Top (Line In), Bottom (Line Out) |
-| **RCBO** | Compact 1-Pole+N (1M) or Standard 2-Pole (2M) | 1M / 2M | Line/Neutral In, Line/Neutral Out, Functional Earth |
-| **Surge Protection** | Type 2 / Type 1+2 SPD (1P+N, 3P+N) | 1M–4M | L1, L2, L3, N, Earth |
-| **Terminal & Distribution Blocks** | Feed-through DIN terminals, WAGO DIN mounts, 1-in 4-out unipolar distribution blocks (UKK 80A style) | 1M–2M | Tiered in/out terminals, internal bus schematic |
-| **Detached Field Connection Blocks** | Freestanding junction blocks (compact square form factor, detached off-rail) with prominent customizable labels ("From House", "To Airconditioner") | Freestanding (off-rail) | 2 Terminals (1/L, 2/N) with top or bottom orientation toggle |
-| **Smart / Aux Devices** | Digital Energy Meters 2P (2-In / 2-Out with Passthrough: 2-Module 36mm & 1-Module 18mm Compact, 63A), Shelly DIN relays, Contactors, Bell Transformers | 1M–3M | Control terminals (A1/A2), Dual-line in/out passthrough, load terminals |
-| **Transfer Switches (ATS/MTS)** | Automatic Transfer Switch (ATS-GQ2-2P, 100A 220V, 6M) & Manual Transfer Switch (MTS Taxnele TX219G, 63A 400V 3-Position I-0-II, 2M) | 2M, 6M | ATS: Top Main In, Bottom Tier 1 Standby In, Bottom Tier 2 ATS Out, Aux Signals; MTS: Top Load Out (1 & 5), Bottom Grid In (2 & 6) & Gen In (4 & 8) |
-| **Accessories** | Blanking plates, Rail separators/dividers | 0.5M, 1M | No terminals (spacers) |
+| **Solar PV Modules** | Monocrystalline / Bifacial PV Array | Freestanding (Off-Rail) | Terminals: `PV+`, `PV-`<br>Authorable: Peak Power (Watts), Voc/Vmp (Volts), Isc/Imp (Current) |
+| **Battery Storage** | LiFePO4 / Lithium-Ion Battery Bank | Freestanding (Off-Rail) | Terminals: `BAT+`, `BAT-`<br>Authorable: Voltage (V), Capacity (Ah), Auto-calculated Wh & kWh, Chemistry |
+| **MCCB Breakers** | Molded Case Circuit Breakers (63A–400A+) | Freestanding (Off-Rail) | Line In / Load Out bolt terminals (`L1_IN`, `L2_IN`, `L1_OUT`, `L2_OUT`)<br>Authorable: Rated Amps, Poles (2P/3P/4P), Breaking Capacity (kA) |
+| **Hybrid Inverter** | Multi-mode Hybrid Solar Inverter (3kW–15kW) | Freestanding (Off-Rail) | Terminals: `PV1+`, `PV1-`, `BAT+`, `BAT-`, `AC_IN_L`, `AC_IN_N`, `AC_IN_PE`, `AC_OUT_L`, `AC_OUT_N`, `AC_OUT_PE`<br>Authorable: kW Capacity, System Voltage (48V) |
+| **Off-Grid Inverter** | Pure Sine Wave Standalone Inverter (1kW–10kW) | Freestanding (Off-Rail) | Terminals: `PV+`, `PV-`, `BAT+`, `BAT-`, `AC_OUT_L`, `AC_OUT_N`, `AC_OUT_PE`, `AC_IN_L`, `AC_IN_N`<br>Authorable: kW Capacity, System Voltage (24V/48V) |
+| **Main Switches** | 2-Pole / 4-Pole Isolator (63A, 100A) | DIN Rail (2M / 4M) | In: L1, L2, L3, N; Out: L1, L2, L3, N |
+| **RCD / RCCB** | 2-Pole / 4-Pole (30mA, 100mA, 300mA Type A/AC/B) | DIN Rail (2M / 4M) | Line In, Neutral In, Line Out, Neutral Out |
+| **MCB** | 1-Pole, 2-Pole, 3-Pole (B, C, D curves; 6A–63A) | DIN Rail (1M, 2M, 3M) | Top (Line In), Bottom (Line Out) |
+| **RCBO** | Compact 1-Pole+N (1M) or Standard 2-Pole (2M) | DIN Rail (1M / 2M) | Line/Neutral In, Line/Neutral Out, Functional Earth |
+| **Surge Protection** | Type 2 / Type 1+2 SPD (1P+N, 3P+N) | DIN Rail (1M–4M) | L1, L2, L3, N, Earth |
+| **Terminal & Distribution Blocks** | Feed-through DIN terminals, WAGO DIN mounts, 1-in 4-out unipolar distribution blocks (UKK 80A style) | DIN Rail (1M–2M) | Tiered in/out terminals, internal bus schematic |
+| **Detached Field Connection Blocks** | Freestanding junction blocks (compact square form factor, detached off-rail) | Freestanding (Off-Rail) | 2 Terminals (1/L, 2/N) with top or bottom orientation toggle; Customizable labels ("From House", "To Airconditioner") |
+| **Smart / Aux Devices** | Digital Energy Meters 2P (2-In / 2-Out with Passthrough: 2-Module 36mm & 1-Module 18mm Compact, 63A), Shelly DIN relays, Contactors, Bell Transformers | DIN Rail (1M–3M) | Control terminals (A1/A2), Dual-line in/out passthrough, load terminals |
+| **Transfer Switches (ATS/MTS)** | Automatic Transfer Switch (ATS-GQ2-2P, 100A 220V, 6M) & Manual Transfer Switch (MTS Taxnele TX219G, 63A 400V 3-Position I-0-II, 2M) | DIN Rail (2M, 6M) | ATS: Top Main In, Bottom Tier 1 Standby In, Bottom Tier 2 ATS Out, Aux Signals; MTS: Top Load Out (1 & 5), Bottom Grid In (2 & 6) & Gen In (4 & 8) |
+| **Accessories** | Blanking plates, Rail separators/dividers | DIN Rail (0.5M, 1M) | No terminals (spacers) |
 
 #### Device Visual Representation & Properties:
 - **Visual Footprint**: Standardized parametric 2D DIN box representations rendered dynamically from device width (TE), toggle switches, rating text, and terminal pin locations. *(Note: Custom external SVG footprint imports are deferred to future releases).*

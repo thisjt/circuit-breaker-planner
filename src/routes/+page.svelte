@@ -42,8 +42,8 @@
         panelStore.removeWire(panelStore.selectedId);
       } else if (panelStore.selectedType === 'busbar' && panelStore.selectedId) {
         panelStore.removeBusbar(panelStore.selectedId);
-      } else if (panelStore.selectedType === 'field_block' && panelStore.selectedId) {
-        panelStore.removeFieldBlock(panelStore.selectedId);
+      } else if ((panelStore.selectedType === 'field_block' || panelStore.selectedType === 'equipment') && panelStore.selectedId) {
+        panelStore.removeEquipment(panelStore.selectedId);
       }
     }
 

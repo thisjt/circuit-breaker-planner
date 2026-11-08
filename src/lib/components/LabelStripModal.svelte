@@ -1,7 +1,7 @@
 <script lang="ts">
   import { panelStore } from '#lib/state.svelte';
   import { getDeviceDef } from '#lib/catalog';
-  import { Printer, X } from '@lucide/svelte';
+  import { Printer, X, Layers } from '@lucide/svelte';
 
   interface Props {
     isOpen: boolean;
@@ -9,6 +9,19 @@
   }
 
   let { isOpen, onClose }: Props = $props();
+
+  let selectedPanelId = $state<string>(panelStore.activePanelId);
+
+  // Keep selectedPanelId in sync if active panel changes
+  $effect(() => {
+    if (panelStore.panels.some((p) => p.id === panelStore.activePanelId)) {
+      selectedPanelId = panelStore.activePanelId;
+    }
+  });
+
+  const targetPanel = $derived(
+    panelStore.panels.find((p) => p.id === selectedPanelId) || panelStore.activePanel
+  );
 
   function triggerPrint() {
     window.print();
@@ -36,7 +49,7 @@
 
         <div class="flex items-center gap-2">
           <button
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition shadow-lg shadow-purple-600/20"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:purple-500 text-white transition shadow-lg shadow-purple-600/20"
             onclick={triggerPrint}
           >
             <Printer class="w-3.5 h-3.5" />
@@ -51,22 +64,46 @@
         </div>
       </div>
 
+      <!-- Panel Selector Tabs (if multiple panels exist) -->
+      {#if panelStore.panels.length > 1}
+        <div class="px-6 py-2.5 border-b border-slate-800 bg-slate-950/50 flex items-center gap-2 print:hidden overflow-x-auto">
+          <div class="flex items-center gap-1.5 text-xs text-slate-400 font-medium mr-1">
+            <Layers class="w-3.5 h-3.5 text-purple-400" />
+            <span>Select Panel:</span>
+          </div>
+          {#each panelStore.panels as p}
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-semibold transition {p.id === selectedPanelId ? 'bg-purple-600 text-white shadow' : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'}"
+              onclick={() => (selectedPanelId = p.id)}
+            >
+              {p.name}
+            </button>
+          {/each}
+        </div>
+      {/if}
+
       <!-- Preview Area -->
       <div class="flex-1 overflow-y-auto p-6 space-y-6 print:p-0 print:m-0">
-        <div class="bg-amber-950/30 border border-amber-900/40 p-3 rounded-xl text-xs text-amber-300 print:hidden">
-          <span class="font-bold">Printing Guide:</span> Select 100% scale (no fit-to-page scaling) in your print dialog so that each slot matches the true 18mm DIN module pitch.
+        <div class="bg-amber-950/30 border border-amber-900/40 p-3 rounded-xl text-xs text-amber-300 print:hidden flex items-center justify-between">
+          <div>
+            <span class="font-bold">Printing Guide for "{targetPanel.name}":</span> Select 100% scale (no fit-to-page scaling) in your print dialog so that each slot matches the true 18mm DIN module pitch.
+          </div>
+          <span class="text-[11px] font-mono bg-amber-500/20 px-2 py-0.5 rounded text-amber-200">
+            {targetPanel.rows} Rows × {targetPanel.slotsPerRow} Modules
+          </span>
         </div>
 
-        {#each Array(panelStore.config.rows) as _, r}
+        {#each Array(targetPanel.rows) as _, r}
           <div class="space-y-1.5">
-            <div class="text-xs font-bold text-slate-400 font-mono">
-              DIN Rail Row {r + 1}
+            <div class="text-xs font-bold text-slate-400 font-mono flex items-center justify-between">
+              <span>{targetPanel.name} — DIN Rail Row {r + 1}</span>
+              <span class="text-[10px] text-slate-500 font-normal">{targetPanel.slotsPerRow} Slots (18mm each)</span>
             </div>
 
             <!-- Label Strip Row -->
             <div class="flex border-2 border-slate-600 bg-white rounded overflow-x-auto text-black">
-              {#each Array(panelStore.config.slotsPerRow) as _, s}
-                {@const device = panelStore.devices.find((d) => d.railIndex === r && d.slotIndex <= s && s < d.slotIndex + d.widthModules)}
+              {#each Array(targetPanel.slotsPerRow) as _, s}
+                {@const device = panelStore.devices.find((d) => (d.panelId || panelStore.panels[0].id) === targetPanel.id && d.railIndex === r && d.slotIndex <= s && s < d.slotIndex + d.widthModules)}
                 {@const isFirstSlotOfDev = device ? device.slotIndex === s : false}
                 {@const def = device ? getDeviceDef(device.typeId) : undefined}
 
@@ -114,4 +151,3 @@
     </div>
   </div>
 {/if}
-
