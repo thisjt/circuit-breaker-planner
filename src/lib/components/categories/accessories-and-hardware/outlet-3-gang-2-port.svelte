@@ -115,8 +115,21 @@
 >
   <circle r="14" fill="transparent" />
   <title>Outlet Line (L / L1)</title>
-  <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.3" class="group-hover/outl:scale-125" />
-  <text x="0" y={isTop ? -8 : 13} text-anchor="middle" font-size="5" font-weight="bold" fill="#dc2626">L</text>
+  <circle
+    r="5.5"
+    fill="#dc2626"
+    stroke="#fecaca"
+    stroke-width="1.3"
+    class="group-hover/outl:scale-125"
+  />
+  <text
+    x="0"
+    y={isTop ? -8 : 13}
+    text-anchor="middle"
+    font-size="5"
+    font-weight="bold"
+    fill="#dc2626">L</text
+  >
 </g>
 
 <g
@@ -130,8 +143,21 @@
 >
   <circle r="14" fill="transparent" />
   <title>Outlet Neutral / Line 2 (N)</title>
-  <circle r="5.5" fill="#0284c7" stroke="#e0f2fe" stroke-width="1.3" class="group-hover/outn:scale-125" />
-  <text x="0" y={isTop ? -8 : 13} text-anchor="middle" font-size="5" font-weight="bold" fill="#0284c7">N</text>
+  <circle
+    r="5.5"
+    fill="#0284c7"
+    stroke="#e0f2fe"
+    stroke-width="1.3"
+    class="group-hover/outn:scale-125"
+  />
+  <text
+    x="0"
+    y={isTop ? -8 : 13}
+    text-anchor="middle"
+    font-size="5"
+    font-weight="bold"
+    fill="#0284c7">N</text
+  >
 </g>
 
 <g
@@ -145,7 +171,19 @@
 >
   <circle r="14" fill="transparent" />
   <title>Outlet Protective Earth (PE)</title>
-  <circle r="5.5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.3" class="group-hover/outpe:scale-125" />
-  <text x="0" y={isTop ? -8 : 13} text-anchor="middle" font-size="5" font-weight="bold" fill="#16a34a">PE</text>
+  <circle
+    r="5.5"
+    fill="#16a34a"
+    stroke="#bbf7d0"
+    stroke-width="1.3"
+    class="group-hover/outpe:scale-125"
+  />
+  <text
+    x="0"
+    y={isTop ? -8 : 13}
+    text-anchor="middle"
+    font-size="5"
+    font-weight="bold"
+    fill="#16a34a">PE</text
+  >
 </g>
-

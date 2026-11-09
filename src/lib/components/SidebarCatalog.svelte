@@ -185,7 +185,9 @@
   ];
 
   // Accordion open/collapse states (persisted in localStorage)
-  let expandedSections = $state<Record<string, boolean>>(loadExpandedSections());
+  let expandedSections = $state<Record<string, boolean>>(
+    loadExpandedSections(),
+  );
 
   function toggleSection(id: string) {
     expandedSections[id] = !expandedSections[id];
@@ -219,7 +221,8 @@
       tagClass: "bg-amber-500/20 text-amber-300 border-amber-500/40",
       colorClass: "from-amber-400 to-amber-600",
       desc: "Free-place solar PV panel with authorable peak watts (W), voltage (V), and current (A). Connect PV+ / PV- directly to inverters or combiner SPDs.",
-      keywords: "solar pv module string array panel watts voltage current power",
+      keywords:
+        "solar pv module string array panel watts voltage current power",
       action: () => panelStore.addSolarPanel(),
     },
     {
@@ -252,7 +255,8 @@
       tagClass: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
       colorClass: "from-cyan-400 to-cyan-600",
       desc: "Pure sine wave off-grid inverter with authorable kW capacity, Battery In/Out, PV string input, and AC Out feed for standalone consumer units.",
-      keywords: "offgrid off-grid inverter standalone pure sine wave kw battery pv ac out",
+      keywords:
+        "offgrid off-grid inverter standalone pure sine wave kw battery pv ac out",
       action: () => panelStore.addOffgridInverter(),
     },
   ];
@@ -264,8 +268,8 @@
           (item) =>
             item.title.toLowerCase().includes(cleanQuery) ||
             item.desc.toLowerCase().includes(cleanQuery) ||
-            item.keywords.includes(cleanQuery)
-        )
+            item.keywords.includes(cleanQuery),
+        ),
   );
 
   // MCCB items
@@ -278,7 +282,8 @@
       tagClass: "bg-rose-500/20 text-rose-300 border-rose-500/40",
       colorClass: "from-rose-400 to-rose-600",
       desc: "High-amperage molded case breaker (63A–400A+, 36kA–50kA) for main service entrance or high-capacity sub-feeders with line/load bolt terminals.",
-      keywords: "mccb molded case circuit breaker heavy duty industrial feeder main service 100a 160a 250a 400a ka",
+      keywords:
+        "mccb molded case circuit breaker heavy duty industrial feeder main service 100a 160a 250a 400a ka",
       action: () => panelStore.addMCCB(),
     },
   ];
@@ -290,8 +295,8 @@
           (item) =>
             item.title.toLowerCase().includes(cleanQuery) ||
             item.desc.toLowerCase().includes(cleanQuery) ||
-            item.keywords.includes(cleanQuery)
-        )
+            item.keywords.includes(cleanQuery),
+        ),
   );
 
   // Field Block item
@@ -303,7 +308,8 @@
     tagClass: "bg-teal-500/20 text-teal-300 border-teal-500/40",
     colorClass: "from-teal-400 to-teal-600",
     desc: 'Freestanding 2-terminal block for external supply feeds ("From House", "From Solar") or appliance circuits ("To Airconditioner"). Place freely anywhere off the DIN rail.',
-    keywords: "field block detached connection terminal junction freestanding house airconditioner off-rail 230v",
+    keywords:
+      "field block detached connection terminal junction freestanding house airconditioner off-rail 230v",
     action: () => panelStore.addFieldBlock(),
   };
 
@@ -311,7 +317,7 @@
     !isSearching ||
       fieldBlockItem.title.toLowerCase().includes(cleanQuery) ||
       fieldBlockItem.desc.toLowerCase().includes(cleanQuery) ||
-      fieldBlockItem.keywords.includes(cleanQuery)
+      fieldBlockItem.keywords.includes(cleanQuery),
   );
 
   // Appliance items
@@ -324,7 +330,8 @@
       tagClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
       colorClass: "from-sky-400 to-sky-600",
       desc: "Split-type or packaged HVAC air conditioner with authorable Horsepower (HP) and auto-calculated Kilowatts (kW). Includes L, N, and PE terminals.",
-      keywords: "hvac aircon ac air conditioner split inverter horsepower hp kw cooling appliance",
+      keywords:
+        "hvac aircon ac air conditioner split inverter horsepower hp kw cooling appliance",
       action: () => panelStore.addHVAC(),
     },
     {
@@ -335,7 +342,8 @@
       tagClass: "bg-orange-500/20 text-orange-300 border-orange-500/40",
       colorClass: "from-orange-400 to-orange-600",
       desc: "Instant single-point or multipoint shower water heater with authorable Kilowatts (kW) rating and L, N, PE terminals.",
-      keywords: "shower water heater multipoint single point instant hot water kw appliance",
+      keywords:
+        "shower water heater multipoint single point instant hot water kw appliance",
       action: () => panelStore.addWaterHeater(),
     },
     {
@@ -357,7 +365,8 @@
       tagClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
       colorClass: "from-emerald-400 to-emerald-600",
       desc: "Wallbox electric vehicle (EV) charger with authorable Kilowatts (kW) rating (e.g. 7kW, 11kW, 22kW) and L, N, PE terminals.",
-      keywords: "ev charger electric vehicle wallbox car charging station kw appliance",
+      keywords:
+        "ev charger electric vehicle wallbox car charging station kw appliance",
       action: () => panelStore.addEVCharger(),
     },
   ];
@@ -369,8 +378,8 @@
           (item) =>
             item.title.toLowerCase().includes(cleanQuery) ||
             item.desc.toLowerCase().includes(cleanQuery) ||
-            item.keywords.includes(cleanQuery)
-        )
+            item.keywords.includes(cleanQuery),
+        ),
   );
 
   // Outlet 3-Gang 2-Port item (in Accessories & Hardware)
@@ -382,7 +391,8 @@
     tagClass: "bg-blue-500/20 text-blue-300 border-blue-500/40",
     colorClass: "from-blue-400 to-blue-600",
     desc: "Freestanding 3-Gang 2-Port wall receptacle outlet with authorable Amps rating (e.g. 15A, 16A, 20A) and L, N, PE terminals.",
-    keywords: "outlet 3-gang 2-port socket receptacle wall plug amps 15a 16a 20a accessory hardware",
+    keywords:
+      "outlet 3-gang 2-port socket receptacle wall plug amps 15a 16a 20a accessory hardware",
     action: () => panelStore.addOutlet3Gang(),
   };
 
@@ -390,11 +400,13 @@
     !isSearching ||
       outlet3GangItem.title.toLowerCase().includes(cleanQuery) ||
       outlet3GangItem.desc.toLowerCase().includes(cleanQuery) ||
-      outlet3GangItem.keywords.includes(cleanQuery)
+      outlet3GangItem.keywords.includes(cleanQuery),
   );
 
   // Helper to filter DIN devices for a category
-  function getFilteredDevicesForCategory(category?: DeviceCategory): DeviceDefinition[] {
+  function getFilteredDevicesForCategory(
+    category?: DeviceCategory,
+  ): DeviceDefinition[] {
     if (!category) return [];
     return DEVICE_CATALOG.filter((d) => {
       if (d.category !== category) return false;
@@ -439,14 +451,23 @@
         s <= panelStore.config.slotsPerRow - def.widthModules;
         s++
       ) {
-        if (panelStore.canPlaceDevice(r, s, def.widthModules, panelStore.activePanelId)) {
+        if (
+          panelStore.canPlaceDevice(
+            r,
+            s,
+            def.widthModules,
+            panelStore.activePanelId,
+          )
+        ) {
           panelStore.placeDevice(def.typeId, r, s, panelStore.activePanelId);
           return;
         }
       }
     }
     // If all full, alert user
-    alert(`Could not find an empty ${def.widthModules}M slot on active panel "${panelStore.config.name}".`);
+    alert(
+      `Could not find an empty ${def.widthModules}M slot on active panel "${panelStore.config.name}".`,
+    );
   }
 
   function handleDragStart(def: DeviceDefinition) {
@@ -454,7 +475,7 @@
   }
 
   const totalMatchingItems = $derived(
-    SECTIONS.reduce((sum, sec) => sum + getSectionCount(sec), 0)
+    SECTIONS.reduce((sum, sec) => sum + getSectionCount(sec), 0),
   );
 </script>
 
@@ -496,13 +517,19 @@
     </div>
 
     <!-- Accordion Toolbar: Section Count & Expand/Collapse All Buttons -->
-    <div class="flex items-center justify-between text-[11px] text-slate-400 px-0.5">
+    <div
+      class="flex items-center justify-between text-[11px] text-slate-400 px-0.5"
+    >
       <div class="flex items-center gap-1.5 font-medium">
         {#if isSearching}
-          <span class="text-blue-400 font-semibold">{totalMatchingItems} matches</span>
+          <span class="text-blue-400 font-semibold"
+            >{totalMatchingItems} matches</span
+          >
           <span>across catalog</span>
         {:else}
-          <span class="text-slate-400 font-semibold">{SECTIONS.length} Categories</span>
+          <span class="text-slate-400 font-semibold"
+            >{SECTIONS.length} Categories</span
+          >
         {/if}
       </div>
 
@@ -539,7 +566,9 @@
           <!-- Accordion Header Button -->
           <button
             type="button"
-            class="w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left bg-slate-900/90 hover:bg-slate-800/60 transition cursor-pointer select-none border-l-2 {isOpen ? 'border-blue-500 bg-slate-800/30' : 'border-transparent'}"
+            class="w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left bg-slate-900/90 hover:bg-slate-800/60 transition cursor-pointer select-none border-l-2 {isOpen
+              ? 'border-blue-500 bg-slate-800/30'
+              : 'border-transparent'}"
             onclick={() => toggleSection(section.id)}
             aria-expanded={isOpen}
           >
@@ -552,7 +581,9 @@
               </div>
 
               <!-- Section Title -->
-              <span class="text-xs font-semibold text-slate-200 group-hover/section:text-blue-300 transition truncate">
+              <span
+                class="text-xs font-semibold text-slate-200 group-hover/section:text-blue-300 transition truncate"
+              >
                 {section.label}
               </span>
             </div>
@@ -564,7 +595,9 @@
               >
                 {count}
               </span>
-              <div class="text-slate-400 group-hover/section:text-slate-200 transition">
+              <div
+                class="text-slate-400 group-hover/section:text-slate-200 transition"
+              >
                 {#if isOpen}
                   <ChevronDown class="w-4 h-4 text-blue-400" />
                 {:else}
@@ -576,31 +609,45 @@
 
           <!-- Accordion Body Content -->
           {#if isOpen}
-            <div class="p-2.5 bg-slate-950/50 space-y-2 border-b border-slate-800/40">
-
+            <div
+              class="p-2.5 bg-slate-950/50 space-y-2 border-b border-slate-800/40"
+            >
               <!-- Special Solar Items -->
               {#if section.id === "solar"}
                 {#each filteredSolarItems as item}
                   <div
                     class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-amber-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
                     onclick={item.action}
-                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.action(); } }}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        item.action();
+                      }
+                    }}
                     role="button"
                     tabindex="0"
                   >
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex items-center gap-2">
-                        <div class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"></div>
+                        <div
+                          class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"
+                        ></div>
                         <div>
-                          <div class="text-xs font-bold text-slate-100 group-hover:text-amber-300 leading-tight">
+                          <div
+                            class="text-xs font-bold text-slate-100 group-hover:text-amber-300 leading-tight"
+                          >
                             {item.title}
                           </div>
-                          <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                          <div
+                            class="text-[10px] text-slate-400 font-mono mt-0.5"
+                          >
                             {item.subtitle}
                           </div>
                         </div>
                       </div>
-                      <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}">
+                      <span
+                        class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}"
+                      >
                         {item.tag}
                       </span>
                     </div>
@@ -617,23 +664,36 @@
                   <div
                     class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-rose-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
                     onclick={item.action}
-                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.action(); } }}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        item.action();
+                      }
+                    }}
                     role="button"
                     tabindex="0"
                   >
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex items-center gap-2">
-                        <div class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"></div>
+                        <div
+                          class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"
+                        ></div>
                         <div>
-                          <div class="text-xs font-bold text-slate-100 group-hover:text-rose-300 leading-tight">
+                          <div
+                            class="text-xs font-bold text-slate-100 group-hover:text-rose-300 leading-tight"
+                          >
                             {item.title}
                           </div>
-                          <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                          <div
+                            class="text-[10px] text-slate-400 font-mono mt-0.5"
+                          >
                             {item.subtitle}
                           </div>
                         </div>
                       </div>
-                      <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}">
+                      <span
+                        class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}"
+                      >
                         {item.tag}
                       </span>
                     </div>
@@ -649,23 +709,36 @@
                 <div
                   class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-teal-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
                   onclick={fieldBlockItem.action}
-                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fieldBlockItem.action(); } }}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      fieldBlockItem.action();
+                    }
+                  }}
                   role="button"
                   tabindex="0"
                 >
                   <div class="flex items-start justify-between gap-2">
                     <div class="flex items-center gap-2">
-                      <div class="w-2 h-7 rounded-sm bg-gradient-to-b {fieldBlockItem.colorClass} flex-shrink-0"></div>
+                      <div
+                        class="w-2 h-7 rounded-sm bg-gradient-to-b {fieldBlockItem.colorClass} flex-shrink-0"
+                      ></div>
                       <div>
-                        <div class="text-xs font-bold text-slate-100 group-hover:text-teal-300 leading-tight">
+                        <div
+                          class="text-xs font-bold text-slate-100 group-hover:text-teal-300 leading-tight"
+                        >
                           {fieldBlockItem.title}
                         </div>
-                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                        <div
+                          class="text-[10px] text-slate-400 font-mono mt-0.5"
+                        >
                           {fieldBlockItem.subtitle}
                         </div>
                       </div>
                     </div>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {fieldBlockItem.tagClass}">
+                    <span
+                      class="text-[9px] px-1.5 py-0.5 rounded font-mono border {fieldBlockItem.tagClass}"
+                    >
                       {fieldBlockItem.tag}
                     </span>
                   </div>
@@ -681,23 +754,36 @@
                   <div
                     class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-cyan-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
                     onclick={item.action}
-                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.action(); } }}
+                    onkeydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        item.action();
+                      }
+                    }}
                     role="button"
                     tabindex="0"
                   >
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex items-center gap-2">
-                        <div class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"></div>
+                        <div
+                          class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"
+                        ></div>
                         <div>
-                          <div class="text-xs font-bold text-slate-100 group-hover:text-cyan-300 leading-tight">
+                          <div
+                            class="text-xs font-bold text-slate-100 group-hover:text-cyan-300 leading-tight"
+                          >
                             {item.title}
                           </div>
-                          <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                          <div
+                            class="text-[10px] text-slate-400 font-mono mt-0.5"
+                          >
                             {item.subtitle}
                           </div>
                         </div>
                       </div>
-                      <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}">
+                      <span
+                        class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}"
+                      >
                         {item.tag}
                       </span>
                     </div>
@@ -713,23 +799,36 @@
                 <div
                   class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-blue-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
                   onclick={outlet3GangItem.action}
-                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); outlet3GangItem.action(); } }}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      outlet3GangItem.action();
+                    }
+                  }}
                   role="button"
                   tabindex="0"
                 >
                   <div class="flex items-start justify-between gap-2">
                     <div class="flex items-center gap-2">
-                      <div class="w-2 h-7 rounded-sm bg-gradient-to-b {outlet3GangItem.colorClass} flex-shrink-0"></div>
+                      <div
+                        class="w-2 h-7 rounded-sm bg-gradient-to-b {outlet3GangItem.colorClass} flex-shrink-0"
+                      ></div>
                       <div>
-                        <div class="text-xs font-bold text-slate-100 group-hover:text-blue-300 leading-tight">
+                        <div
+                          class="text-xs font-bold text-slate-100 group-hover:text-blue-300 leading-tight"
+                        >
                           {outlet3GangItem.title}
                         </div>
-                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                        <div
+                          class="text-[10px] text-slate-400 font-mono mt-0.5"
+                        >
                           {outlet3GangItem.subtitle}
                         </div>
                       </div>
                     </div>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {outlet3GangItem.tagClass}">
+                    <span
+                      class="text-[9px] px-1.5 py-0.5 rounded font-mono border {outlet3GangItem.tagClass}"
+                    >
                       {outlet3GangItem.tag}
                     </span>
                   </div>
@@ -746,7 +845,12 @@
                   draggable="true"
                   ondragstart={() => handleDragStart(def)}
                   onclick={() => handleDeviceSelect(def)}
-                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDeviceSelect(def); } }}
+                  onkeydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleDeviceSelect(def);
+                    }
+                  }}
                   role="button"
                   tabindex="0"
                 >
@@ -755,7 +859,8 @@
                       <!-- Color pill -->
                       <div
                         class="w-2 h-7 rounded-sm flex-shrink-0"
-                        style="background-color: {def.colorAccent || '#64748b'};"
+                        style="background-color: {def.colorAccent ||
+                          '#64748b'};"
                       ></div>
                       <div>
                         <div
@@ -763,7 +868,9 @@
                         >
                           {def.name}
                         </div>
-                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                        <div
+                          class="text-[10px] text-slate-400 font-mono mt-0.5"
+                        >
                           {def.widthModules} TE ({def.widthModules * 18}mm)
                           {#if def.ratedAmps}
                             • {def.curve || ""}{def.ratedAmps}A{/if}
@@ -786,7 +893,9 @@
                     </button>
                   </div>
 
-                  <p class="text-[10px] text-slate-400 leading-relaxed line-clamp-2">
+                  <p
+                    class="text-[10px] text-slate-400 leading-relaxed line-clamp-2"
+                  >
                     {def.description}
                   </p>
 
@@ -817,9 +926,12 @@
 
     {#if isSearching && totalMatchingItems === 0}
       <div class="text-center py-12 px-4 space-y-2 text-slate-500">
-        <div class="text-sm font-semibold text-slate-400">No components found</div>
+        <div class="text-sm font-semibold text-slate-400">
+          No components found
+        </div>
         <p class="text-xs text-slate-500">
-          No items match "{searchQuery}". Try searching for generic ratings like "63A", "solar", "RCD", or "inverter".
+          No items match "{searchQuery}". Try searching for generic ratings like
+          "63A", "solar", "RCD", or "inverter".
         </p>
         <button
           type="button"
@@ -838,7 +950,9 @@
   >
     <div class="truncate">
       <span class="font-semibold text-slate-300">Target:</span>
-      <span class="text-blue-400 font-medium ml-1 truncate">"{panelStore.config.name}"</span>
+      <span class="text-blue-400 font-medium ml-1 truncate"
+        >"{panelStore.config.name}"</span
+      >
     </div>
     <span class="text-[10px] text-slate-500 font-mono">
       {panelStore.config.rows}R × {panelStore.config.slotsPerRow}M
