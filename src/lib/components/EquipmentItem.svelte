@@ -8,6 +8,11 @@
   import OffGridInverter from "./categories/solar-and-energy-storage/off-grid-inverter.svelte";
   import MoldedCaseCircuitBreakerMccb from "./categories/mccb-heavy-duty-breakers/molded-case-circuit-breaker-mccb.svelte";
   import DetachedFieldBlock from "./categories/terminals-and-field-blocks/detached-field-block.svelte";
+  import HvacUnit from "./categories/appliances/hvac.svelte";
+  import ShowerWaterHeater from "./categories/appliances/shower-water-heater.svelte";
+  import RefrigeratorUnit from "./categories/appliances/refrigerator.svelte";
+  import EvChargerUnit from "./categories/appliances/ev-charger.svelte";
+  import Outlet3Gang2Port from "./categories/accessories-and-hardware/outlet-3-gang-2-port.svelte";
 
   interface Props {
     eq: FreeEquipment;
@@ -47,6 +52,11 @@
     offgrid_inverter: OffGridInverter,
     mccb: MoldedCaseCircuitBreakerMccb,
     field_block: DetachedFieldBlock,
+    hvac: HvacUnit,
+    water_heater: ShowerWaterHeater,
+    refrigerator: RefrigeratorUnit,
+    ev_charger: EvChargerUnit,
+    outlet_3gang: Outlet3Gang2Port,
   } as const;
 
   const ActiveComponent = $derived(

@@ -116,7 +116,12 @@ export type FreeEquipmentType =
   | 'mccb'
   | 'hybrid_inverter'
   | 'offgrid_inverter'
-  | 'field_block';
+  | 'field_block'
+  | 'hvac'
+  | 'water_heater'
+  | 'refrigerator'
+  | 'ev_charger'
+  | 'outlet_3gang';
 
 export interface FreeEquipment {
   id: string;
@@ -129,7 +134,7 @@ export interface FreeEquipment {
   height?: number;
   terminalPosition?: 'top' | 'bottom';
 
-  // Solar Panel authorable properties:
+  // Solar Panel & Refrigerator authorable properties:
   powerWatts?: number; // Rated Power (W)
   voltage?: number; // Vmp or rated Voltage (V)
   current?: number; // Imp or rated Current (A)
@@ -140,13 +145,14 @@ export interface FreeEquipment {
   whCalculated?: number; // Auto-calculated Wh = batteryVoltage * capacityAh
   chemistry?: string; // e.g. "LiFePO4", "Lithium-Ion", "Lead-Acid"
 
-  // MCCB authorable properties:
-  ratedAmps?: number; // Rated trip Current (A, e.g. 63, 100, 125, 160, 200, 250, 400)
+  // MCCB & Outlet authorable properties:
+  ratedAmps?: number; // Rated Current (A, e.g. 15, 20, 63, 100, 160, 250, 400)
   poles?: 2 | 3 | 4; // Number of poles (default 2)
   breakingCapacityKa?: number; // Breaking capacity (kA, e.g. 25, 36, 50)
 
-  // Inverter authorable properties (Hybrid & Offgrid):
-  capacityKw?: number; // Inverter capacity in kW (e.g. 3, 5, 8, 10, 12)
+  // Inverter, Water Heater, EV Charger & HVAC authorable properties:
+  capacityKw?: number; // Capacity in kW (e.g. 3.5, 5, 7, 8, 11, or auto-calculated from HP)
+  horsepower?: number; // HVAC Horsepower (HP, e.g. 1.0, 1.5, 2.0, 2.5)
   inverterType?: 'hybrid' | 'offgrid';
   systemVoltage?: number; // DC Battery nominal voltage (e.g. 24V or 48V)
 }

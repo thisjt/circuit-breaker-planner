@@ -42,6 +42,7 @@
     ats: false,
     smart: false,
     terminal: false,
+    appliances: false,
     accessory: false,
   };
 
@@ -79,7 +80,7 @@
     accentColor: string; // text and background styles
     badgeColor: string;
     category?: DeviceCategory;
-    isSpecial?: "solar" | "mccb_cat" | "terminal";
+    isSpecial?: "solar" | "mccb_cat" | "terminal" | "appliances" | "accessory";
   }
 
   const SECTIONS: SectionDef[] = [
@@ -165,12 +166,21 @@
       isSpecial: "terminal",
     },
     {
+      id: "appliances",
+      label: "Appliances",
+      icon: Zap,
+      accentColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+      badgeColor: "text-cyan-300 bg-cyan-500/20 border-cyan-500/30",
+      isSpecial: "appliances",
+    },
+    {
       id: "accessory",
       label: "Accessories & Hardware",
       icon: Layers,
       accentColor: "text-slate-400 bg-slate-500/10 border-slate-500/20",
       badgeColor: "text-slate-300 bg-slate-500/20 border-slate-500/30",
       category: "accessory",
+      isSpecial: "accessory",
     },
   ];
 
@@ -304,6 +314,85 @@
       fieldBlockItem.keywords.includes(cleanQuery)
   );
 
+  // Appliance items
+  const applianceItems = [
+    {
+      id: "appliance_hvac",
+      title: "+ HVAC",
+      subtitle: "Freestanding • Authorable HP (Auto kW)",
+      tag: "HP → kW",
+      tagClass: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+      colorClass: "from-sky-400 to-sky-600",
+      desc: "Split-type or packaged HVAC air conditioner with authorable Horsepower (HP) and auto-calculated Kilowatts (kW). Includes L, N, and PE terminals.",
+      keywords: "hvac aircon ac air conditioner split inverter horsepower hp kw cooling appliance",
+      action: () => panelStore.addHVAC(),
+    },
+    {
+      id: "appliance_water_heater",
+      title: "+ Shower Water Heater",
+      subtitle: "Freestanding • Authorable Kilowatts (kW)",
+      tag: "kW Load",
+      tagClass: "bg-orange-500/20 text-orange-300 border-orange-500/40",
+      colorClass: "from-orange-400 to-orange-600",
+      desc: "Instant single-point or multipoint shower water heater with authorable Kilowatts (kW) rating and L, N, PE terminals.",
+      keywords: "shower water heater multipoint single point instant hot water kw appliance",
+      action: () => panelStore.addWaterHeater(),
+    },
+    {
+      id: "appliance_refrigerator",
+      title: "+ Refrigerator",
+      subtitle: "Freestanding • Authorable Watts (W)",
+      tag: "Watts",
+      tagClass: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+      colorClass: "from-cyan-400 to-cyan-600",
+      desc: "Household or commercial refrigerator/freezer with authorable power in Watts (W) and L, N, PE terminals.",
+      keywords: "refrigerator fridge freezer chiller watts w kitchen appliance",
+      action: () => panelStore.addRefrigerator(),
+    },
+    {
+      id: "appliance_ev_charger",
+      title: "+ EV Charger",
+      subtitle: "Freestanding • Authorable Kilowatts (kW)",
+      tag: "EV kW",
+      tagClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+      colorClass: "from-emerald-400 to-emerald-600",
+      desc: "Wallbox electric vehicle (EV) charger with authorable Kilowatts (kW) rating (e.g. 7kW, 11kW, 22kW) and L, N, PE terminals.",
+      keywords: "ev charger electric vehicle wallbox car charging station kw appliance",
+      action: () => panelStore.addEVCharger(),
+    },
+  ];
+
+  const filteredApplianceItems = $derived(
+    !isSearching
+      ? applianceItems
+      : applianceItems.filter(
+          (item) =>
+            item.title.toLowerCase().includes(cleanQuery) ||
+            item.desc.toLowerCase().includes(cleanQuery) ||
+            item.keywords.includes(cleanQuery)
+        )
+  );
+
+  // Outlet 3-Gang 2-Port item (in Accessories & Hardware)
+  const outlet3GangItem = {
+    id: "outlet_3gang_2port",
+    title: "+ Outlet 3-Gang 2-Port",
+    subtitle: "Freestanding • Authorable Amps (A)",
+    tag: "3-Gang",
+    tagClass: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+    colorClass: "from-blue-400 to-blue-600",
+    desc: "Freestanding 3-Gang 2-Port wall receptacle outlet with authorable Amps rating (e.g. 15A, 16A, 20A) and L, N, PE terminals.",
+    keywords: "outlet 3-gang 2-port socket receptacle wall plug amps 15a 16a 20a accessory hardware",
+    action: () => panelStore.addOutlet3Gang(),
+  };
+
+  const showOutletInAccessory = $derived(
+    !isSearching ||
+      outlet3GangItem.title.toLowerCase().includes(cleanQuery) ||
+      outlet3GangItem.desc.toLowerCase().includes(cleanQuery) ||
+      outlet3GangItem.keywords.includes(cleanQuery)
+  );
+
   // Helper to filter DIN devices for a category
   function getFilteredDevicesForCategory(category?: DeviceCategory): DeviceDefinition[] {
     if (!category) return [];
@@ -322,9 +411,14 @@
   function getSectionCount(section: SectionDef): number {
     if (section.id === "solar") return filteredSolarItems.length;
     if (section.id === "mccb_cat") return filteredMccbItems.length;
+    if (section.id === "appliances") return filteredApplianceItems.length;
     if (section.id === "terminal") {
       const dinCount = getFilteredDevicesForCategory(section.category).length;
       return dinCount + (showFieldBlockInTerminal ? 1 : 0);
+    }
+    if (section.id === "accessory") {
+      const dinCount = getFilteredDevicesForCategory(section.category).length;
+      return dinCount + (showOutletInAccessory ? 1 : 0);
     }
     return getFilteredDevicesForCategory(section.category).length;
   }
@@ -577,6 +671,70 @@
                   </div>
                   <p class="text-[10px] text-slate-400 leading-relaxed">
                     {fieldBlockItem.desc}
+                  </p>
+                </div>
+              {/if}
+
+              <!-- Special Appliances Items -->
+              {#if section.id === "appliances"}
+                {#each filteredApplianceItems as item}
+                  <div
+                    class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-cyan-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
+                    onclick={item.action}
+                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.action(); } }}
+                    role="button"
+                    tabindex="0"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-7 rounded-sm bg-gradient-to-b {item.colorClass} flex-shrink-0"></div>
+                        <div>
+                          <div class="text-xs font-bold text-slate-100 group-hover:text-cyan-300 leading-tight">
+                            {item.title}
+                          </div>
+                          <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                            {item.subtitle}
+                          </div>
+                        </div>
+                      </div>
+                      <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {item.tagClass}">
+                        {item.tag}
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </div>
+                {/each}
+              {/if}
+
+              <!-- Special Outlet 3-Gang 2-Port (in Accessories & Hardware Section) -->
+              {#if section.id === "accessory" && showOutletInAccessory}
+                <div
+                  class="bg-gradient-to-r from-slate-900 to-slate-950 border border-slate-800 hover:border-blue-500/60 rounded-xl p-2.5 cursor-pointer transition shadow-sm group flex flex-col gap-1.5"
+                  onclick={outlet3GangItem.action}
+                  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); outlet3GangItem.action(); } }}
+                  role="button"
+                  tabindex="0"
+                >
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-7 rounded-sm bg-gradient-to-b {outlet3GangItem.colorClass} flex-shrink-0"></div>
+                      <div>
+                        <div class="text-xs font-bold text-slate-100 group-hover:text-blue-300 leading-tight">
+                          {outlet3GangItem.title}
+                        </div>
+                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                          {outlet3GangItem.subtitle}
+                        </div>
+                      </div>
+                    </div>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded font-mono border {outlet3GangItem.tagClass}">
+                      {outlet3GangItem.tag}
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 leading-relaxed">
+                    {outlet3GangItem.desc}
                   </p>
                 </div>
               {/if}

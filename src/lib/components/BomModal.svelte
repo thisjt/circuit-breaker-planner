@@ -51,6 +51,11 @@
       else if (eq.type === 'mccb') specs = `${eq.ratedAmps || 160}A ${eq.poles || 2}P (${eq.breakingCapacityKa || 36}kA)`;
       else if (eq.type === 'hybrid_inverter') specs = `${eq.capacityKw || 8}kW Hybrid (${eq.systemVoltage || 48}V)`;
       else if (eq.type === 'offgrid_inverter') specs = `${eq.capacityKw || 5}kW Offgrid (${eq.systemVoltage || 48}V)`;
+      else if (eq.type === 'hvac') specs = `${eq.horsepower || 1.5} HP (${(eq.capacityKw ?? +((eq.horsepower || 1.5) * 0.746).toFixed(2)).toFixed(2)} kW)`;
+      else if (eq.type === 'water_heater') specs = `${eq.capacityKw || 3.5} kW`;
+      else if (eq.type === 'refrigerator') specs = `${eq.powerWatts || 250} W`;
+      else if (eq.type === 'ev_charger') specs = `${eq.capacityKw || 7.0} kW`;
+      else if (eq.type === 'outlet_3gang') specs = `${eq.ratedAmps || 16}A 3-Gang 2-Port`;
       else if (eq.type === 'field_block') specs = '230V 2-Terminal Block';
 
       if (!map.has(key)) {

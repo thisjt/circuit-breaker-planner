@@ -492,6 +492,62 @@ export class PanelState {
         };
         break;
 
+      case 'hvac':
+        eqDefaults = {
+          label: count === 0 ? 'HVAC Aircon 1.5HP' : `HVAC Unit ${count + 1}`,
+          description: '230V Split-Type Inverter AC',
+          horsepower: 1.5,
+          capacityKw: +(1.5 * 0.746).toFixed(2),
+          width: 128,
+          height: 112,
+          terminalPosition: 'top'
+        };
+        break;
+
+      case 'water_heater':
+        eqDefaults = {
+          label: count === 0 ? 'Shower Water Heater' : `Water Heater ${count + 1}`,
+          description: '230V Single-Point / Multipoint',
+          capacityKw: 3.5,
+          width: 116,
+          height: 124,
+          terminalPosition: 'top'
+        };
+        break;
+
+      case 'refrigerator':
+        eqDefaults = {
+          label: count === 0 ? 'Refrigerator' : `Refrigerator ${count + 1}`,
+          description: '230V Inverter Fridge/Freezer',
+          powerWatts: 250,
+          width: 112,
+          height: 132,
+          terminalPosition: 'top'
+        };
+        break;
+
+      case 'ev_charger':
+        eqDefaults = {
+          label: count === 0 ? 'EV Wallbox Charger' : `EV Charger ${count + 1}`,
+          description: '230V Level 2 AC Charger',
+          capacityKw: 7.0,
+          width: 124,
+          height: 136,
+          terminalPosition: 'top'
+        };
+        break;
+
+      case 'outlet_3gang':
+        eqDefaults = {
+          label: count === 0 ? 'Outlet 3-Gang 2-Port' : `3-Gang Outlet ${count + 1}`,
+          description: '250V~ Duplex Wall Receptacle',
+          ratedAmps: 16,
+          width: 132,
+          height: 98,
+          terminalPosition: 'top'
+        };
+        break;
+
       case 'field_block':
       default:
         eqDefaults = {
@@ -519,6 +575,11 @@ export class PanelState {
       newEq.whCalculated = Math.round(newEq.batteryVoltage * newEq.capacityAh);
     }
 
+    // Calculate kW if HVAC
+    if (newEq.type === 'hvac' && newEq.horsepower !== undefined) {
+      newEq.capacityKw = +(newEq.horsepower * 0.746).toFixed(2);
+    }
+
     this.equipment.push(newEq);
     this.select('equipment', newEq.id);
     this.saveToLocalStorage();
@@ -534,6 +595,11 @@ export class PanelState {
       const v = updates.batteryVoltage !== undefined ? updates.batteryVoltage : (eq.batteryVoltage || 0);
       const ah = updates.capacityAh !== undefined ? updates.capacityAh : (eq.capacityAh || 0);
       updates.whCalculated = Math.round(v * ah);
+    }
+
+    // Auto-calculate HVAC kW from Horsepower (1 HP = 0.746 kW)
+    if (eq.type === 'hvac' && updates.horsepower !== undefined) {
+      updates.capacityKw = +(updates.horsepower * 0.746).toFixed(2);
     }
 
     Object.assign(eq, updates);
@@ -583,6 +649,26 @@ export class PanelState {
 
   addFieldBlock(label?: string, x?: number, y?: number): FreeEquipment {
     return this.addEquipment('field_block', x, y, label ? { label } : undefined);
+  }
+
+  addHVAC(x?: number, y?: number) {
+    return this.addEquipment('hvac', x, y);
+  }
+
+  addWaterHeater(x?: number, y?: number) {
+    return this.addEquipment('water_heater', x, y);
+  }
+
+  addRefrigerator(x?: number, y?: number) {
+    return this.addEquipment('refrigerator', x, y);
+  }
+
+  addEVCharger(x?: number, y?: number) {
+    return this.addEquipment('ev_charger', x, y);
+  }
+
+  addOutlet3Gang(x?: number, y?: number) {
+    return this.addEquipment('outlet_3gang', x, y);
   }
 
   // Device Placement on DIN Rails (supporting multi-panel)
@@ -1482,6 +1568,11 @@ export class PanelState {
       else if (eq.type === 'mccb') specs = `${eq.ratedAmps || 160}A ${eq.poles || 2}P (${eq.breakingCapacityKa || 36}kA)`;
       else if (eq.type === 'hybrid_inverter') specs = `${eq.capacityKw || 8}kW Hybrid Inverter (${eq.systemVoltage || 48}V)`;
       else if (eq.type === 'offgrid_inverter') specs = `${eq.capacityKw || 5}kW Offgrid Inverter (${eq.systemVoltage || 48}V)`;
+      else if (eq.type === 'hvac') specs = `${eq.horsepower || 1.5} HP (${(eq.capacityKw ?? +( (eq.horsepower || 1.5) * 0.746 ).toFixed(2)).toFixed(2)} kW)`;
+      else if (eq.type === 'water_heater') specs = `${eq.capacityKw || 3.5} kW`;
+      else if (eq.type === 'refrigerator') specs = `${eq.powerWatts || 250} W`;
+      else if (eq.type === 'ev_charger') specs = `${eq.capacityKw || 7.0} kW`;
+      else if (eq.type === 'outlet_3gang') specs = `${eq.ratedAmps || 16}A 250V~ (3-Gang 2-Port)`;
       else if (eq.type === 'field_block') specs = '230V 2-Terminal Block';
 
       if (!groups.has(key)) {

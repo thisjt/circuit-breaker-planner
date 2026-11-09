@@ -226,6 +226,22 @@
         return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
       }
 
+      case 'hvac':
+      case 'water_heater':
+      case 'refrigerator':
+      case 'ev_charger':
+      case 'outlet_3gang': {
+        const termY = isTop ? eq.y + 14 : eq.y + h - 14;
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'L' || terminalId === '1' || terminalId === 'L1') {
+          return { x: eq.x + 24, y: termY, position: pos };
+        }
+        if (terminalId === 'N' || terminalId === '2' || terminalId === 'L2') {
+          return { x: eq.x + w / 2, y: termY, position: pos };
+        }
+        return { x: eq.x + w - 24, y: termY, position: pos };
+      }
+
       case 'field_block':
       default: {
         const termY = isTop ? eq.y + 14 : eq.y + h - 14;

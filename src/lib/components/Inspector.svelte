@@ -653,7 +653,7 @@
       </div>
     </div>
 
-  <!-- 4. FREE-PLACE EQUIPMENT SELECTED (SOLAR, BATTERY, MCCB, INVERTERS, FIELD BLOCK) -->
+  <!-- 4. FREE-PLACE EQUIPMENT SELECTED (SOLAR, BATTERY, MCCB, INVERTERS, APPLIANCES, ACCESSORIES, FIELD BLOCK) -->
   {:else if selectedEquipment}
     <div class="p-4 border-b border-slate-800 flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -667,6 +667,16 @@
           <Zap class="w-4 h-4 text-blue-400" />
         {:else if selectedEquipment.type === 'offgrid_inverter'}
           <Cpu class="w-4 h-4 text-cyan-400" />
+        {:else if selectedEquipment.type === 'hvac'}
+          <Zap class="w-4 h-4 text-sky-400" />
+        {:else if selectedEquipment.type === 'water_heater'}
+          <Zap class="w-4 h-4 text-orange-400" />
+        {:else if selectedEquipment.type === 'refrigerator'}
+          <Zap class="w-4 h-4 text-cyan-400" />
+        {:else if selectedEquipment.type === 'ev_charger'}
+          <Zap class="w-4 h-4 text-emerald-400" />
+        {:else if selectedEquipment.type === 'outlet_3gang'}
+          <Square class="w-4 h-4 text-slate-300" />
         {:else}
           <Square class="w-4 h-4 text-amber-400" />
         {/if}
@@ -681,7 +691,17 @@
                   ? 'Hybrid Inverter'
                   : selectedEquipment.type === 'offgrid_inverter'
                     ? 'Off-Grid Inverter'
-                    : 'Field Connection Block'}
+                    : selectedEquipment.type === 'hvac'
+                      ? 'HVAC Air Conditioner'
+                      : selectedEquipment.type === 'water_heater'
+                        ? 'Shower Water Heater'
+                        : selectedEquipment.type === 'refrigerator'
+                          ? 'Refrigerator'
+                          : selectedEquipment.type === 'ev_charger'
+                            ? 'EV Charger'
+                            : selectedEquipment.type === 'outlet_3gang'
+                              ? 'Outlet 3-Gang 2-Port'
+                              : 'Field Connection Block'}
         </h3>
       </div>
       <button
@@ -935,6 +955,178 @@
           </div>
         </div>
 
+      <!-- HVAC AUTHORING -->
+      {:else if selectedEquipment.type === 'hvac'}
+        <div class="bg-sky-950/20 border border-sky-600/30 p-2.5 rounded-xl text-sky-300 text-[11px]">
+          Authorable HVAC Horsepower (HP). Power in Kilowatts (kW) is <span class="font-bold underline">auto-calculated</span> (1 HP = 0.746 kW).
+        </div>
+
+        <div>
+          <label class="block font-semibold text-sky-400 mb-1">Horsepower (HP)</label>
+          <input
+            type="number"
+            step="0.25"
+            min="0.5"
+            max="20"
+            value={selectedEquipment.horsepower ?? 1.5}
+            oninput={(e) => {
+              const hp = parseFloat((e.target as HTMLInputElement).value) || 0;
+              panelStore.updateEquipment(selectedEquipment.id, { horsepower: hp });
+            }}
+            class="w-full bg-slate-950 border border-sky-500/60 rounded-lg p-2 text-slate-100 outline-none font-mono font-bold text-sm"
+          />
+          <div class="grid grid-cols-5 gap-1 mt-1.5">
+            {#each [0.75, 1.0, 1.5, 2.0, 2.5] as hpOpt}
+              <button
+                class="py-1 rounded text-[10px] font-mono border transition {(selectedEquipment.horsepower ?? 1.5) === hpOpt
+                  ? 'bg-sky-600 border-sky-400 text-white font-bold'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}"
+                onclick={() => panelStore.updateEquipment(selectedEquipment.id, { horsepower: hpOpt })}
+              >
+                {hpOpt}HP
+              </button>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Auto-calculated Kilowatts readout -->
+        <div class="bg-slate-950 p-3 rounded-xl border border-sky-500/50 space-y-1">
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">
+            Auto-Calculated Power (Kilowatts):
+          </div>
+          <div class="text-lg font-mono font-black text-sky-400">
+            {(selectedEquipment.capacityKw ?? +((selectedEquipment.horsepower ?? 1.5) * 0.746).toFixed(2)).toFixed(2)} kW
+            <span class="text-xs text-slate-400 font-normal">({Math.round((selectedEquipment.horsepower ?? 1.5) * 746)} W)</span>
+          </div>
+          <div class="text-[10px] text-slate-500 font-mono">
+            Formula: {selectedEquipment.horsepower ?? 1.5} HP × 0.746 = {(selectedEquipment.capacityKw ?? +((selectedEquipment.horsepower ?? 1.5) * 0.746).toFixed(2)).toFixed(2)} kW
+          </div>
+        </div>
+
+      <!-- SHOWER WATER HEATER AUTHORING -->
+      {:else if selectedEquipment.type === 'water_heater'}
+        <div class="bg-orange-950/20 border border-orange-600/30 p-2.5 rounded-xl text-orange-300 text-[11px]">
+          Instant / multipoint shower water heater rated power in Kilowatts (kW).
+        </div>
+
+        <div>
+          <label class="block font-semibold text-orange-400 mb-1">Rated Power (Kilowatts - kW)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="1"
+            max="24"
+            bind:value={selectedEquipment.capacityKw}
+            oninput={() => panelStore.saveToLocalStorage()}
+            class="w-full bg-slate-950 border border-orange-500/60 rounded-lg p-2 text-slate-100 outline-none font-mono font-bold text-sm"
+          />
+          <div class="grid grid-cols-5 gap-1 mt-1.5">
+            {#each [3.5, 4.5, 5.5, 6.0, 8.5] as kwOpt}
+              <button
+                class="py-1 rounded text-[10px] font-mono border transition {(selectedEquipment.capacityKw ?? 3.5) === kwOpt
+                  ? 'bg-orange-600 border-orange-400 text-white font-bold'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}"
+                onclick={() => panelStore.updateEquipment(selectedEquipment.id, { capacityKw: kwOpt })}
+              >
+                {kwOpt}kW
+              </button>
+            {/each}
+          </div>
+        </div>
+
+      <!-- REFRIGERATOR AUTHORING -->
+      {:else if selectedEquipment.type === 'refrigerator'}
+        <div class="bg-cyan-950/20 border border-cyan-600/30 p-2.5 rounded-xl text-cyan-300 text-[11px]">
+          Refrigerator / freezer appliance rated power in Watts (W).
+        </div>
+
+        <div>
+          <label class="block font-semibold text-cyan-400 mb-1">Rated Power (Watts - W)</label>
+          <input
+            type="number"
+            step="25"
+            min="50"
+            max="3000"
+            bind:value={selectedEquipment.powerWatts}
+            oninput={() => panelStore.saveToLocalStorage()}
+            class="w-full bg-slate-950 border border-cyan-500/60 rounded-lg p-2 text-slate-100 outline-none font-mono font-bold text-sm"
+          />
+          <div class="grid grid-cols-4 gap-1 mt-1.5">
+            {#each [150, 250, 400, 600] as wOpt}
+              <button
+                class="py-1 rounded text-[10px] font-mono border transition {(selectedEquipment.powerWatts ?? 250) === wOpt
+                  ? 'bg-cyan-600 border-cyan-400 text-white font-bold'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}"
+                onclick={() => panelStore.updateEquipment(selectedEquipment.id, { powerWatts: wOpt })}
+              >
+                {wOpt}W
+              </button>
+            {/each}
+          </div>
+        </div>
+
+      <!-- EV CHARGER AUTHORING -->
+      {:else if selectedEquipment.type === 'ev_charger'}
+        <div class="bg-emerald-950/20 border border-emerald-600/30 p-2.5 rounded-xl text-emerald-300 text-[11px]">
+          Electric Vehicle AC Wallbox Charger rated power in Kilowatts (kW).
+        </div>
+
+        <div>
+          <label class="block font-semibold text-emerald-400 mb-1">Charging Power (Kilowatts - kW)</label>
+          <input
+            type="number"
+            step="0.5"
+            min="1.5"
+            max="44"
+            bind:value={selectedEquipment.capacityKw}
+            oninput={() => panelStore.saveToLocalStorage()}
+            class="w-full bg-slate-950 border border-emerald-500/60 rounded-lg p-2 text-slate-100 outline-none font-mono font-bold text-sm"
+          />
+          <div class="grid grid-cols-4 gap-1 mt-1.5">
+            {#each [3.5, 7.0, 11.0, 22.0] as kwOpt}
+              <button
+                class="py-1 rounded text-[10px] font-mono border transition {(selectedEquipment.capacityKw ?? 7.0) === kwOpt
+                  ? 'bg-emerald-600 border-emerald-400 text-white font-bold'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}"
+                onclick={() => panelStore.updateEquipment(selectedEquipment.id, { capacityKw: kwOpt })}
+              >
+                {kwOpt}kW
+              </button>
+            {/each}
+          </div>
+        </div>
+
+      <!-- OUTLET 3-GANG 2-PORT AUTHORING -->
+      {:else if selectedEquipment.type === 'outlet_3gang'}
+        <div class="bg-slate-800/50 border border-slate-600/40 p-2.5 rounded-xl text-slate-300 text-[11px]">
+          3-Gang 2-Port convenience outlet receptacle rated current in Amps (A).
+        </div>
+
+        <div>
+          <label class="block font-semibold text-blue-400 mb-1">Rated Current (Amps - A)</label>
+          <input
+            type="number"
+            step="1"
+            min="6"
+            max="32"
+            bind:value={selectedEquipment.ratedAmps}
+            oninput={() => panelStore.saveToLocalStorage()}
+            class="w-full bg-slate-950 border border-blue-500/60 rounded-lg p-2 text-slate-100 outline-none font-mono font-bold text-sm"
+          />
+          <div class="grid grid-cols-4 gap-1 mt-1.5">
+            {#each [10, 15, 16, 20] as ampOpt}
+              <button
+                class="py-1 rounded text-[10px] font-mono border transition {(selectedEquipment.ratedAmps ?? 16) === ampOpt
+                  ? 'bg-blue-600 border-blue-400 text-white font-bold'
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}"
+                onclick={() => panelStore.updateEquipment(selectedEquipment.id, { ratedAmps: ampOpt })}
+              >
+                {ampOpt}A
+              </button>
+            {/each}
+          </div>
+        </div>
+
       <!-- FIELD BLOCK -->
       {:else}
         <div>
@@ -946,6 +1138,30 @@
             class="w-full bg-slate-950 border border-amber-500/60 rounded-lg p-2 text-slate-100 outline-none focus:border-amber-400 font-bold"
             placeholder="e.g. From House, To Airconditioner"
           />
+        </div>
+      {/if}
+
+      {#if selectedEquipment.type === 'hvac' || selectedEquipment.type === 'water_heater' || selectedEquipment.type === 'refrigerator' || selectedEquipment.type === 'ev_charger' || selectedEquipment.type === 'outlet_3gang' || selectedEquipment.type === 'field_block'}
+        <div>
+          <label class="block font-semibold text-slate-400 mb-1">Terminal Port Position</label>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button
+              class="py-1.5 px-2 rounded-lg border text-xs font-semibold transition {(selectedEquipment.terminalPosition || 'top') === 'top'
+                ? 'bg-blue-600/30 border-blue-500 text-white'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}"
+              onclick={() => panelStore.updateEquipment(selectedEquipment.id, { terminalPosition: 'top' })}
+            >
+              Top Ports
+            </button>
+            <button
+              class="py-1.5 px-2 rounded-lg border text-xs font-semibold transition {selectedEquipment.terminalPosition === 'bottom'
+                ? 'bg-blue-600/30 border-blue-500 text-white'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}"
+              onclick={() => panelStore.updateEquipment(selectedEquipment.id, { terminalPosition: 'bottom' })}
+            >
+              Bottom Ports
+            </button>
+          </div>
         </div>
       {/if}
 
