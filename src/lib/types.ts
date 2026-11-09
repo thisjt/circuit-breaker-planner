@@ -195,6 +195,7 @@ export interface CloudPlanSummary {
   wireCount: number;
   updatedAt: string;
   sizeBytes?: number;
+  hasPassphrase?: boolean;
 }
 
 

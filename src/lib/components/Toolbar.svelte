@@ -26,7 +26,11 @@
     Share2,
     ChevronDown,
     Cloud,
-    FileCode
+    FileCode,
+    Lock,
+    Unlock,
+    KeyRound,
+    ShieldCheck
   } from "@lucide/svelte";
 
   interface Props {
@@ -190,20 +194,51 @@
 
           <div class="my-1 border-t border-slate-800"></div>
 
-          <button
-            type="button"
-            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
-            onclick={() => {
-              showFileMenu = false;
-              onQuickSave();
-            }}
-          >
-            <span class="flex items-center gap-2.5">
-              <Save class="w-4 h-4 text-blue-400" />
-              <span>Save {panelStore.cloudPlanId ? `(/plan/${panelStore.cloudPlanId})` : "to Cloud"}</span>
-            </span>
-            <span class="font-mono text-[10px] text-slate-500">Ctrl+S</span>
-          </button>
+          {#if panelStore.cloudPlanId && !panelStore.canEditCurrentPlan}
+            <button
+              type="button"
+              class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-amber-300"
+              onclick={() => {
+                showFileMenu = false;
+                onOpenFileModal("save_as");
+              }}
+            >
+              <span class="flex items-center gap-2.5">
+                <Cloud class="w-4 h-4 text-amber-400" />
+                <span>Save (Fork as My Copy)...</span>
+              </span>
+              <span class="font-mono text-[10px] text-slate-500">Ctrl+S</span>
+            </button>
+
+            <button
+              type="button"
+              class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+              onclick={() => {
+                showFileMenu = false;
+                onOpenFileModal("unlock");
+              }}
+            >
+              <span class="flex items-center gap-2.5">
+                <KeyRound class="w-4 h-4 text-amber-400" />
+                <span>Unlock Direct Editing...</span>
+              </span>
+            </button>
+          {:else}
+            <button
+              type="button"
+              class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+              onclick={() => {
+                showFileMenu = false;
+                onQuickSave();
+              }}
+            >
+              <span class="flex items-center gap-2.5">
+                <Save class="w-4 h-4 text-blue-400" />
+                <span>Save {panelStore.cloudPlanId ? `(/plan/${panelStore.cloudPlanId})` : "to Cloud"}</span>
+              </span>
+              <span class="font-mono text-[10px] text-slate-500">Ctrl+S</span>
+            </button>
+          {/if}
 
           <button
             type="button"
@@ -344,15 +379,48 @@
       {/if}
     </div>
 
-    <!-- Inline Project Title Input -->
-    <input
-      type="text"
-      bind:value={panelStore.projectTitle}
-      oninput={() => panelStore.saveToLocalStorage()}
-      placeholder="Project Title..."
-      title="Project Title (Click to rename)"
-      class="bg-slate-950/90 hover:bg-slate-950 focus:bg-slate-950 text-xs font-semibold text-slate-200 border border-slate-800 focus:border-blue-500 rounded-lg px-2.5 py-1.5 outline-none w-40 truncate transition"
-    />
+    <!-- Inline Project Title Input & Plan Status Badge -->
+    <div class="flex items-center gap-1.5">
+      <input
+        type="text"
+        bind:value={panelStore.projectTitle}
+        oninput={() => panelStore.saveToLocalStorage()}
+        placeholder="Project Title..."
+        title="Project Title (Click to rename)"
+        class="bg-slate-950/90 hover:bg-slate-950 focus:bg-slate-950 text-xs font-semibold text-slate-200 border border-slate-800 focus:border-blue-500 rounded-lg px-2.5 py-1.5 outline-none w-36 truncate transition"
+      />
+
+      {#if panelStore.cloudPlanId}
+        {#if panelStore.canEditCurrentPlan}
+          <span
+            class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/70 border border-emerald-600/50 text-emerald-300 flex-shrink-0"
+            title="You are the author/authorized editor of this plan"
+          >
+            <ShieldCheck class="w-3 h-3 text-emerald-400" />
+            <span>Author</span>
+          </span>
+        {:else}
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <span
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-950/70 border border-amber-600/50 text-amber-300"
+              title="Viewing shared plan in read-only mode"
+            >
+              <Lock class="w-3 h-3 text-amber-400" />
+              <span>Read-Only</span>
+            </span>
+            <button
+              type="button"
+              class="px-2 py-0.5 text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-600/40 rounded-full transition flex items-center gap-1"
+              onclick={() => onOpenFileModal("unlock")}
+              title="Enter author's passphrase to unlock direct editing"
+            >
+              <KeyRound class="w-3 h-3" />
+              <span>Unlock</span>
+            </button>
+          </div>
+        {/if}
+      {/if}
+    </div>
 
     <!-- Breaker Panel Switcher & + Add Panel -->
     <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
@@ -540,18 +608,29 @@
       <span>PNG</span>
     </button>
 
-    <!-- Quick Save Button -->
-    <button
-      class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition"
-      onclick={onQuickSave}
-      title="Save Plan (Ctrl+S)"
-    >
-      <Save class="w-3.5 h-3.5 text-blue-400" />
-      <span>{panelStore.isSavingCloud ? "Saving..." : "Save"}</span>
-      {#if panelStore.cloudPlanId && panelStore.cloudDirty}
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-400" title="Unsaved cloud changes"></span>
-      {/if}
-    </button>
+    <!-- Quick Save / Fork Button -->
+    {#if panelStore.cloudPlanId && !panelStore.canEditCurrentPlan}
+      <button
+        class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 transition"
+        onclick={() => onOpenFileModal("save_as")}
+        title="Shared plan (Read-Only). Click to save a copy as your own project."
+      >
+        <Cloud class="w-3.5 h-3.5 text-amber-400" />
+        <span>Fork Copy</span>
+      </button>
+    {:else}
+      <button
+        class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition"
+        onclick={onQuickSave}
+        title="Save Plan (Ctrl+S)"
+      >
+        <Save class="w-3.5 h-3.5 text-blue-400" />
+        <span>{panelStore.isSavingCloud ? "Saving..." : "Save"}</span>
+        {#if panelStore.cloudPlanId && panelStore.cloudDirty}
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400" title="Unsaved cloud changes"></span>
+        {/if}
+      </button>
+    {/if}
 
     <!-- Share Plan Button (Cloudflare R2 /plan/<id>) -->
     <button

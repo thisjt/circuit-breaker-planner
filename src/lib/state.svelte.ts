@@ -34,6 +34,8 @@ export class PanelState {
   lastSavedAt = $state<string | null>(null);
   isSavingCloud = $state<boolean>(false);
   cloudDirty = $state<boolean>(false);
+  canEditCurrentPlan = $state<boolean>(true);
+  currentPlanHasPassphrase = $state<boolean>(false);
 
   // Multiple Breaker Panels
   panels = $state<PanelConfig[]>([
@@ -143,6 +145,48 @@ export class PanelState {
     this.selectedType === 'panel' ? this.panels.find((p) => p.id === this.selectedId) : undefined
   );
 
+  // Token & Authorization Storage Helpers
+  getStoredEditToken(planId: string | null | undefined): string | null {
+    if (typeof window === 'undefined' || !planId) return null;
+    try {
+      const raw = localStorage.getItem('circuit_breaker_plan_tokens');
+      const tokens = raw ? JSON.parse(raw) : {};
+      return typeof tokens[planId] === 'string' ? tokens[planId] : null;
+    } catch {
+      return null;
+    }
+  }
+
+  setStoredEditToken(planId: string | null | undefined, token: string) {
+    if (typeof window === 'undefined' || !planId || !token) return;
+    try {
+      const raw = localStorage.getItem('circuit_breaker_plan_tokens');
+      const tokens = raw ? JSON.parse(raw) : {};
+      tokens[planId] = token;
+      localStorage.setItem('circuit_breaker_plan_tokens', JSON.stringify(tokens));
+    } catch (e) {
+      console.warn('Failed to store edit token:', e);
+    }
+  }
+
+  removeStoredEditToken(planId: string | null | undefined) {
+    if (typeof window === 'undefined' || !planId) return;
+    try {
+      const raw = localStorage.getItem('circuit_breaker_plan_tokens');
+      if (raw) {
+        const tokens = JSON.parse(raw);
+        delete tokens[planId];
+        localStorage.setItem('circuit_breaker_plan_tokens', JSON.stringify(tokens));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  hasStoredEditToken(planId: string | null | undefined): boolean {
+    return !!this.getStoredEditToken(planId);
+  }
+
   constructor() {
     this.initFromLocalStorage();
   }
@@ -201,8 +245,11 @@ export class PanelState {
         if (typeof parsed.projectAuthor === 'string') {
           this.projectAuthor = parsed.projectAuthor;
         }
-        if (typeof parsed.cloudPlanId === 'string') {
+        if (typeof parsed.cloudPlanId === 'string' && parsed.cloudPlanId.trim()) {
           this.cloudPlanId = parsed.cloudPlanId;
+          this.canEditCurrentPlan = this.hasStoredEditToken(this.cloudPlanId);
+        } else {
+          this.canEditCurrentPlan = true;
         }
         if (typeof parsed.lastSavedAt === 'string') {
           this.lastSavedAt = parsed.lastSavedAt;
@@ -1350,6 +1397,8 @@ export class PanelState {
     this.cloudPlanId = null;
     this.lastSavedAt = null;
     this.cloudDirty = false;
+    this.canEditCurrentPlan = true;
+    this.currentPlanHasPassphrase = false;
     this.projectTitle = title.trim() || 'Untitled Electrical Plan';
     if (author !== undefined) {
       this.projectAuthor = author.trim();
@@ -1388,15 +1437,21 @@ export class PanelState {
     }
   }
 
-  async saveToCloud(asNewCopy = false): Promise<{
+  async saveToCloud(
+    asNewCopy = false,
+    passphrase?: string,
+    removePassphrase?: boolean
+  ): Promise<{
     id: string;
     url: string;
     title: string;
     updatedAt: string;
+    editToken?: string;
+    hasPassphrase?: boolean;
   }> {
     this.isSavingCloud = true;
     try {
-      const payload = {
+      const payload: Record<string, any> = {
         version: '2.0.0',
         projectTitle: this.projectTitle,
         projectAuthor: this.projectAuthor,
@@ -1413,14 +1468,48 @@ export class PanelState {
       const endpoint = targetId ? `/api/plans/${encodeURIComponent(targetId)}` : '/api/plans';
       const method = targetId ? 'PUT' : 'POST';
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (targetId) {
+        const token = this.getStoredEditToken(targetId);
+        if (token) {
+          headers['X-Edit-Token'] = token;
+        }
+        if (typeof passphrase === 'string' && passphrase.trim()) {
+          payload.newPassphrase = passphrase.trim();
+        } else if (removePassphrase) {
+          payload.removePassphrase = true;
+        }
+      } else {
+        if (typeof passphrase === 'string' && passphrase.trim()) {
+          payload.passphrase = passphrase.trim();
+        }
+      }
+
       const res = await fetch(endpoint, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
-        const errBody = (await res.json().catch(() => ({}))) as { message?: string };
+        const errBody = (await res.json().catch(() => ({}))) as {
+          message?: string;
+          error?: string;
+          hasPassphrase?: boolean;
+        };
+        if (res.status === 403) {
+          this.canEditCurrentPlan = false;
+          if (errBody.hasPassphrase) {
+            this.currentPlanHasPassphrase = true;
+          }
+          throw new Error(
+            errBody.message ||
+              'You do not have permission to overwrite this plan. Enter the passphrase to unlock or Save As a new copy.'
+          );
+        }
         throw new Error(errBody.message || `Cloud save failed (${res.status})`);
       }
 
@@ -1429,10 +1518,22 @@ export class PanelState {
         url: string;
         title: string;
         updatedAt: string;
+        editToken?: string;
+        hasPassphrase?: boolean;
       };
+
       this.cloudPlanId = result.id;
       this.lastSavedAt = result.updatedAt;
       this.cloudDirty = false;
+      this.canEditCurrentPlan = true;
+      if (result.hasPassphrase !== undefined) {
+        this.currentPlanHasPassphrase = result.hasPassphrase;
+      }
+
+      if (result.editToken) {
+        this.setStoredEditToken(result.id, result.editToken);
+      }
+
       this.saveToLocalStorage(false);
 
       if (typeof window !== 'undefined') {
@@ -1448,7 +1549,14 @@ export class PanelState {
     }
   }
 
-  loadFromCloudData(data: any, id: string, title?: string, author?: string, updatedAt?: string): boolean {
+  loadFromCloudData(
+    data: any,
+    id: string,
+    title?: string,
+    author?: string,
+    updatedAt?: string,
+    meta?: { hasPassphrase?: boolean; canEdit?: boolean }
+  ): boolean {
     const ok = this.importJSON(typeof data === 'string' ? data : JSON.stringify(data));
     if (ok) {
       this.cloudPlanId = id;
@@ -1456,6 +1564,12 @@ export class PanelState {
       if (author !== undefined) this.projectAuthor = author;
       if (updatedAt) this.lastSavedAt = updatedAt;
       this.cloudDirty = false;
+
+      // Determine Edit Rights
+      const hasToken = this.hasStoredEditToken(id);
+      this.canEditCurrentPlan = hasToken || meta?.canEdit === true;
+      this.currentPlanHasPassphrase = !!meta?.hasPassphrase;
+
       this.saveToLocalStorage(false);
 
       if (typeof window !== 'undefined') {
@@ -1466,6 +1580,35 @@ export class PanelState {
       }
     }
     return ok;
+  }
+
+  async unlockWithPassphrase(passphrase: string): Promise<boolean> {
+    if (!this.cloudPlanId) {
+      throw new Error('No active cloud plan to unlock.');
+    }
+    const cleanPass = passphrase.trim();
+    if (!cleanPass) {
+      throw new Error('Please enter a passphrase.');
+    }
+
+    const res = await fetch(`/api/plans/${encodeURIComponent(this.cloudPlanId)}/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passphrase: cleanPass })
+    });
+
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as { message?: string };
+      throw new Error(err.message || 'Incorrect passphrase.');
+    }
+
+    const data = (await res.json()) as { authorized: boolean; editToken?: string };
+    if (data.authorized && data.editToken) {
+      this.setStoredEditToken(this.cloudPlanId, data.editToken);
+      this.canEditCurrentPlan = true;
+      return true;
+    }
+    return false;
   }
 
   loadSampleProject() {

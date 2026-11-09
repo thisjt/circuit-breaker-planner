@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { CloudPlanSummary } from '#lib/types';
+import { generateEditToken, hashPassphrase } from '#lib/server/auth';
 
 function generateShortId(length = 8): string {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -37,7 +38,8 @@ export const GET: RequestHandler = async ({ platform }) => {
         deviceCount: parseInt(meta.deviceCount || '0', 10) || 0,
         wireCount: parseInt(meta.wireCount || '0', 10) || 0,
         updatedAt: meta.updatedAt || obj.uploaded.toISOString(),
-        sizeBytes: obj.size
+        sizeBytes: obj.size,
+        hasPassphrase: meta.hasPassphrase === 'true'
       };
     })
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -64,6 +66,27 @@ export const POST: RequestHandler = async ({ request, platform }) => {
   const deviceCount = Array.isArray(body.devices) ? body.devices.length : 0;
   const wireCount = Array.isArray(body.wires) ? body.wires.length : 0;
 
+  const editToken = generateEditToken();
+  const rawPassphrase = typeof body.passphrase === 'string' ? body.passphrase.trim() : '';
+
+  const customMetadata: Record<string, string> = {
+    title,
+    author,
+    panelCount: String(panelCount),
+    deviceCount: String(deviceCount),
+    wireCount: String(wireCount),
+    updatedAt: now,
+    editToken,
+    hasPassphrase: 'false'
+  };
+
+  if (rawPassphrase) {
+    const { hash, salt } = await hashPassphrase(rawPassphrase);
+    customMetadata.hasPassphrase = 'true';
+    customMetadata.passphraseHash = hash;
+    customMetadata.passphraseSalt = salt;
+  }
+
   const payload = {
     ...body,
     cloudPlanId: id,
@@ -71,19 +94,13 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     projectAuthor: author,
     updatedAt: now
   };
+  delete (payload as any).passphrase;
 
   await bucket.put(`plans/${id}.json`, JSON.stringify(payload), {
     httpMetadata: {
       contentType: 'application/json'
     },
-    customMetadata: {
-      title,
-      author,
-      panelCount: String(panelCount),
-      deviceCount: String(deviceCount),
-      wireCount: String(wireCount),
-      updatedAt: now
-    }
+    customMetadata
   });
 
   return json({
@@ -91,7 +108,9 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     url: `/plan/${id}`,
     title,
     author,
-    updatedAt: now
+    updatedAt: now,
+    editToken,
+    hasPassphrase: customMetadata.hasPassphrase === 'true',
+    canEdit: true
   });
 };
-

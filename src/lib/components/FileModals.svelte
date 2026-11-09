@@ -20,10 +20,21 @@
     LayoutGrid,
     AlertCircle,
     User,
-    FileText
+    FileText,
+    Lock,
+    Unlock,
+    KeyRound,
+    ShieldCheck
   } from '@lucide/svelte';
 
-  export type FileModalMode = 'new' | 'open' | 'save_as' | 'share' | 'incoming_shared' | null;
+  export type FileModalMode =
+    | 'new'
+    | 'open'
+    | 'save_as'
+    | 'share'
+    | 'incoming_shared'
+    | 'unlock'
+    | null;
 
   interface Props {
     mode: FileModalMode;
@@ -51,8 +62,15 @@
   // Save As / Share state
   let editTitle = $state('');
   let editAuthor = $state('');
+  let editPassphrase = $state('');
+  let removePassphrase = $state(false);
   let copiedId = $state<string | null>(null);
   let shareError = $state<string | null>(null);
+
+  // Unlock Modal state
+  let unlockPassphrase = $state('');
+  let unlockLoading = $state(false);
+  let unlockError = $state<string | null>(null);
 
   // Incoming shared plan state
   let incomingPlanLoading = $state(false);
@@ -62,6 +80,8 @@
     title: string;
     author: string;
     updatedAt: string;
+    hasPassphrase?: boolean;
+    canEdit?: boolean;
     data: any;
   } | null>(null);
 
@@ -86,12 +106,19 @@
       cloudError = null;
       fetchCloudPlans();
     } else if (mode === 'save_as' || mode === 'share') {
-      editTitle = panelStore.projectTitle || panelStore.activePanel.name || 'Residential Distribution Plan';
+      editTitle =
+        panelStore.projectTitle || panelStore.activePanel.name || 'Residential Distribution Plan';
       editAuthor = panelStore.projectAuthor || '';
+      editPassphrase = '';
+      removePassphrase = false;
       shareError = null;
       if (mode === 'share' && !panelStore.cloudPlanId) {
         handleSaveToCloud(false);
       }
+    } else if (mode === 'unlock') {
+      unlockPassphrase = '';
+      unlockError = null;
+      unlockLoading = false;
     } else if (mode === 'incoming_shared' && incomingPlanId) {
       fetchIncomingPlan(incomingPlanId);
     }
@@ -110,7 +137,7 @@
       onNotify?.('Share link copied to clipboard!');
       setTimeout(() => {
         if (copiedId === planId) copiedId = null;
-      }, 2200);
+      }, 2500);
     } catch {
       // Fallback
     }
@@ -144,7 +171,10 @@
     isLoadingCloudList = true;
     cloudError = null;
     try {
-      const res = await fetch(`/api/plans/${encodeURIComponent(cleanId)}`);
+      const token = panelStore.getStoredEditToken(cleanId);
+      const res = await fetch(`/api/plans/${encodeURIComponent(cleanId)}`, {
+        headers: token ? { 'X-Edit-Token': token } : {}
+      });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(err.message || `Plan "${cleanId}" not found.`);
@@ -154,6 +184,8 @@
         title: string;
         author: string;
         updatedAt: string;
+        hasPassphrase?: boolean;
+        canEdit?: boolean;
         data: any;
       };
       panelStore.loadFromCloudData(
@@ -161,7 +193,8 @@
         result.id,
         result.title,
         result.author,
-        result.updatedAt
+        result.updatedAt,
+        { hasPassphrase: result.hasPassphrase, canEdit: result.canEdit }
       );
       onNotify?.(`Opened cloud plan "${result.title}"`);
       onClose();
@@ -175,16 +208,22 @@
   async function handleDeleteCloudPlan(id: string, title: string) {
     if (!confirm(`Delete cloud plan "${title}" (/plan/${id}) from R2 storage?`)) return;
     try {
+      const token = panelStore.getStoredEditToken(id);
       const res = await fetch(`/api/plans/${encodeURIComponent(id)}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: token ? { 'X-Edit-Token': token } : {}
       });
       if (res.ok) {
         cloudPlans = cloudPlans.filter((p) => p.id !== id);
+        panelStore.removeStoredEditToken(id);
         if (panelStore.cloudPlanId === id) {
           panelStore.cloudPlanId = null;
           panelStore.saveToLocalStorage(false);
         }
         onNotify?.(`Deleted cloud plan "${title}"`);
+      } else {
+        const err = (await res.json().catch(() => ({}))) as { message?: string };
+        alert(err.message || 'Cannot delete this plan.');
       }
     } catch (e) {
       console.error('Failed to delete cloud plan:', e);
@@ -198,7 +237,7 @@
     panelStore.saveToLocalStorage(false);
 
     try {
-      const result = await panelStore.saveToCloud(asNewCopy);
+      const result = await panelStore.saveToCloud(asNewCopy, editPassphrase, removePassphrase);
       onNotify?.(
         asNewCopy
           ? `Saved as new cloud plan (/plan/${result.id})`
@@ -209,6 +248,21 @@
       }
     } catch (e: any) {
       shareError = e?.message || 'Could not save plan to Cloudflare R2.';
+    }
+  }
+
+  async function handleUnlock() {
+    unlockLoading = true;
+    unlockError = null;
+    try {
+      await panelStore.unlockWithPassphrase(unlockPassphrase);
+      onNotify?.('Plan unlocked! You now have direct author/editor permissions.');
+      unlockPassphrase = '';
+      onClose();
+    } catch (e: any) {
+      unlockError = e?.message || 'Incorrect passphrase.';
+    } finally {
+      unlockLoading = false;
     }
   }
 
@@ -271,7 +325,10 @@
     incomingPlanError = null;
     incomingPlanPayload = null;
     try {
-      const res = await fetch(`/api/plans/${encodeURIComponent(id)}`);
+      const token = panelStore.getStoredEditToken(id);
+      const res = await fetch(`/api/plans/${encodeURIComponent(id)}`, {
+        headers: token ? { 'X-Edit-Token': token } : {}
+      });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { message?: string };
         throw new Error(err.message || `Shared plan "/plan/${id}" was not found.`);
@@ -291,7 +348,11 @@
       incomingPlanPayload.id,
       incomingPlanPayload.title,
       incomingPlanPayload.author,
-      incomingPlanPayload.updatedAt
+      incomingPlanPayload.updatedAt,
+      {
+        hasPassphrase: incomingPlanPayload.hasPassphrase,
+        canEdit: incomingPlanPayload.canEdit
+      }
     );
     onNotify?.(`Loaded shared plan "${incomingPlanPayload.title}"`);
     onClose();
@@ -299,8 +360,19 @@
 </script>
 
 {#if mode}
-  <div class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl text-slate-200 overflow-hidden flex flex-col max-h-[88vh]">
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in"
+    onclick={onClose}
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+  >
+    <!-- Modal Dialog Window -->
+    <div
+      class="w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200 animate-scale-in"
+      onclick={(e) => e.stopPropagation()}
+      role="document"
+    >
       <!-- 1. NEW PROJECT MODAL -->
       {#if mode === 'new'}
         <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
@@ -309,8 +381,8 @@
               <FilePlus class="w-5 h-5" />
             </div>
             <div>
-              <h2 class="text-base font-bold text-slate-100">New Electrical Plan</h2>
-              <p class="text-xs text-slate-400">Start a clean breaker panel project or load the starter template.</p>
+              <h2 class="text-base font-bold text-slate-100">Create New Project</h2>
+              <p class="text-xs text-slate-400">Start a new distribution panel or load standard engineering template.</p>
             </div>
           </div>
           <button class="text-slate-400 hover:text-slate-200 p-1.5 hover:bg-slate-800 rounded-lg transition" onclick={onClose}>
@@ -318,14 +390,14 @@
           </button>
         </div>
 
-        <div class="p-6 space-y-4 text-xs overflow-y-auto">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="p-6 space-y-4 text-xs">
+          <div class="space-y-3">
             <div>
               <label class="block font-semibold text-slate-300 mb-1">Project Title</label>
               <input
                 type="text"
                 bind:value={newTitle}
-                placeholder="e.g. 2-Storey Residence Main & Sub-Panel"
+                placeholder="e.g. 2-Storey Residential Distribution"
                 class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 outline-none focus:border-blue-500 font-semibold"
               />
             </div>
@@ -345,67 +417,63 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                class="p-4 rounded-xl border text-left transition flex flex-col gap-1.5 {newTemplateMode === 'blank'
-                  ? 'bg-blue-600/20 border-blue-500 text-white'
-                  : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}"
+                class="p-4 rounded-xl border text-left transition flex flex-col gap-2 {newTemplateMode === 'blank'
+                  ? 'border-blue-500 bg-blue-950/30'
+                  : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'}"
                 onclick={() => (newTemplateMode = 'blank')}
               >
-                <div class="flex items-center gap-2 font-bold text-sm">
-                  <LayoutGrid class="w-4 h-4 text-blue-400" />
-                  <span>Blank Breaker Panel</span>
+                <div class="flex items-center justify-between">
+                  <LayoutGrid class="w-5 h-5 text-blue-400" />
+                  {#if newTemplateMode === 'blank'}
+                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                  {/if}
                 </div>
-                <p class="text-[11px] text-slate-400 leading-relaxed">
-                  Empty 2-Row (24M) enclosure with PE & Neutral bars ready for custom breaker placement.
-                </p>
+                <div>
+                  <div class="font-bold text-slate-100 text-sm">Blank 2-Row Panel</div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">Empty 24-module DIN panel with ground & neutral busbars.</div>
+                </div>
               </button>
 
               <button
                 type="button"
-                class="p-4 rounded-xl border text-left transition flex flex-col gap-1.5 {newTemplateMode === 'template'
-                  ? 'bg-blue-600/20 border-blue-500 text-white'
-                  : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}"
+                class="p-4 rounded-xl border text-left transition flex flex-col gap-2 {newTemplateMode === 'template'
+                  ? 'border-blue-500 bg-blue-950/30'
+                  : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'}"
                 onclick={() => (newTemplateMode = 'template')}
               >
-                <div class="flex items-center gap-2 font-bold text-sm">
-                  <Sparkles class="w-4 h-4 text-amber-400" />
-                  <span>Residential Starter Template</span>
+                <div class="flex items-center justify-between">
+                  <Sparkles class="w-5 h-5 text-amber-400" />
+                  {#if newTemplateMode === 'template'}
+                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                  {/if}
                 </div>
-                <p class="text-[11px] text-slate-400 leading-relaxed">
-                  Pre-populated with 63A Main Switch, Type 2 SPD, 40A RCD, branch MCBs, and sample wiring.
-                </p>
+                <div>
+                  <div class="font-bold text-slate-100 text-sm">Residential + Solar Template</div>
+                  <div class="text-[11px] text-slate-400 mt-0.5">Pre-wired Main Incomer, Surge Protection, RCD, and Circuits.</div>
+                </div>
               </button>
             </div>
           </div>
         </div>
 
-        <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between">
+        <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex items-center justify-end gap-2.5">
           <button
             type="button"
-            class="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition"
-            onclick={handleDownloadLocalJSON}
+            class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            onclick={onClose}
           >
-            <Download class="w-3.5 h-3.5" />
-            <span>Backup Current Workspace (.json)</span>
+            Cancel
           </button>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-              onclick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition shadow-lg shadow-blue-600/20"
-              onclick={handleCreateNewProject}
-            >
-              Create Project
-            </button>
-          </div>
+          <button
+            type="button"
+            class="px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition shadow-lg shadow-blue-600/20"
+            onclick={handleCreateNewProject}
+          >
+            Create Project
+          </button>
         </div>
 
-      <!-- 2. OPEN PROJECT MODAL (CLOUD R2 + LOCAL JSON) -->
+      <!-- 2. OPEN PROJECT MODAL -->
       {:else if mode === 'open'}
         <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -514,13 +582,24 @@
             {:else}
               <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
                 {#each filteredCloudPlans as plan (plan.id)}
+                  {@const isOwner = panelStore.hasStoredEditToken(plan.id)}
                   <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 transition">
                     <div class="min-w-0 flex-1">
-                      <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-slate-100 text-sm truncate">{plan.title}</span>
                         <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-blue-400 border border-slate-700">
                           /plan/{plan.id}
                         </span>
+                        {#if isOwner}
+                          <span class="inline-flex items-center gap-0.5 font-mono text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-700/50">
+                            <ShieldCheck class="w-2.5 h-2.5" /> Author
+                          </span>
+                        {/if}
+                        {#if plan.hasPassphrase}
+                          <span class="inline-flex items-center gap-0.5 font-mono text-[9px] px-1.5 py-0.2 rounded bg-amber-950/70 text-amber-300 border border-amber-700/50">
+                            <KeyRound class="w-2.5 h-2.5" /> Passphrase
+                          </span>
+                        {/if}
                       </div>
                       <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 mt-1">
                         {#if plan.author}
@@ -551,14 +630,22 @@
                           <Copy class="w-3.5 h-3.5" />
                         {/if}
                       </button>
-                      <button
-                        type="button"
-                        class="p-2 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition"
-                        onclick={() => handleDeleteCloudPlan(plan.id, plan.title)}
-                        title="Delete from Cloud"
-                      >
-                        <Trash2 class="w-3.5 h-3.5" />
-                      </button>
+
+                      {#if isOwner}
+                        <button
+                          type="button"
+                          class="p-2 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition"
+                          onclick={() => handleDeleteCloudPlan(plan.id, plan.title)}
+                          title="Delete from Cloud (Author Only)"
+                        >
+                          <Trash2 class="w-3.5 h-3.5" />
+                        </button>
+                      {:else}
+                        <span class="p-2 text-slate-600" title="Protected: Only the author can delete this plan">
+                          <Lock class="w-3.5 h-3.5" />
+                        </span>
+                      {/if}
+
                       <button
                         type="button"
                         class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition"
@@ -572,26 +659,27 @@
               </div>
             {/if}
           {:else}
-            <!-- Local JSON File Upload -->
-            <div class="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-2xl p-8 text-center bg-slate-950/50 transition">
-              <Upload class="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <div class="text-sm font-bold text-slate-200 mb-1">
-                Select a Circuit Breaker Project File (.json)
+            <!-- Local .JSON upload -->
+            <div class="p-8 border-2 border-dashed border-slate-700 rounded-xl text-center flex flex-col items-center justify-center gap-3">
+              <Upload class="w-8 h-8 text-blue-400" />
+              <div>
+                <div class="font-bold text-slate-100 text-sm">Upload Project File</div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Select a .json file previously exported from Circuit Breaker Planner</div>
               </div>
-              <p class="text-xs text-slate-400 mb-4">
-                Load a previously exported local project file from your computer.
-              </p>
-              <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer transition">
-                <FolderOpen class="w-4 h-4" />
-                <span>Browse Local .JSON File</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  bind:this={localFileInput}
-                  onchange={handleLocalFileUpload}
-                  class="hidden"
-                />
-              </label>
+              <input
+                type="file"
+                accept=".json,application/json"
+                bind:this={localFileInput}
+                onchange={handleLocalFileUpload}
+                class="hidden"
+              />
+              <button
+                type="button"
+                class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition mt-2"
+                onclick={() => localFileInput?.click()}
+              >
+                Browse .JSON File...
+              </button>
             </div>
           {/if}
         </div>
@@ -604,8 +692,8 @@
               <Save class="w-5 h-5" />
             </div>
             <div>
-              <h2 class="text-base font-bold text-slate-100">Save / Save As</h2>
-              <p class="text-xs text-slate-400">Save your plan to Cloudflare R2 or download a local .json copy.</p>
+              <h2 class="text-base font-bold text-slate-100">Save Electrical Project</h2>
+              <p class="text-xs text-slate-400">Save to Cloudflare R2 object storage or download a local .json file.</p>
             </div>
           </div>
           <button class="text-slate-400 hover:text-slate-200 p-1.5 hover:bg-slate-800 rounded-lg transition" onclick={onClose}>
@@ -618,6 +706,32 @@
             <div class="bg-red-950/40 border border-red-700/60 text-red-200 p-3 rounded-xl flex items-center gap-2">
               <AlertCircle class="w-4 h-4 text-red-400 flex-shrink-0" />
               <span>{shareError}</span>
+            </div>
+          {/if}
+
+          <!-- Notice if user is viewing someone else's shared plan in Read-Only mode -->
+          {#if panelStore.cloudPlanId && !panelStore.canEditCurrentPlan}
+            <div class="bg-amber-950/50 border border-amber-600/60 p-3 rounded-xl space-y-2">
+              <div class="flex items-center gap-2 text-amber-300 font-bold">
+                <Lock class="w-4 h-4" />
+                <span>You are viewing a shared plan (Read-Only)</span>
+              </div>
+              <p class="text-[11px] text-amber-200/90 leading-relaxed">
+                You cannot overwrite the author's original plan without their passphrase.
+                You can save a new copy as your own project below, or unlock direct editing if you know the author's passphrase.
+              </p>
+              {#if panelStore.currentPlanHasPassphrase}
+                <button
+                  type="button"
+                  class="px-2.5 py-1 text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-slate-950 rounded-lg transition flex items-center gap-1.5"
+                  onclick={() => {
+                    mode = 'unlock';
+                  }}
+                >
+                  <KeyRound class="w-3.5 h-3.5" />
+                  <span>Enter Passphrase to Overwrite Original</span>
+                </button>
+              {/if}
             </div>
           {/if}
 
@@ -642,8 +756,31 @@
             </div>
           </div>
 
+          <!-- Passphrase Protection Option -->
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="font-semibold text-slate-200 flex items-center gap-1.5 text-xs">
+                <KeyRound class="w-3.5 h-3.5 text-amber-400" />
+                <span>Collaborator Edit Passphrase (Optional)</span>
+              </label>
+              {#if panelStore.currentPlanHasPassphrase}
+                <span class="text-[10px] text-emerald-400 font-mono">Passphrase Active</span>
+              {/if}
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              As the author, you can always edit directly from this browser without entering a passphrase.
+              Set a passphrase if you want other engineers with the link to be able to edit directly.
+            </p>
+            <input
+              type="password"
+              bind:value={editPassphrase}
+              placeholder={panelStore.currentPlanHasPassphrase ? 'Enter new passphrase (or leave blank to keep current)...' : 'Set optional collaborator edit passphrase...'}
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 outline-none focus:border-amber-500 font-mono text-xs"
+            />
+          </div>
+
           <div class="space-y-2.5 pt-2">
-            {#if panelStore.cloudPlanId}
+            {#if panelStore.cloudPlanId && panelStore.canEditCurrentPlan}
               <button
                 type="button"
                 disabled={panelStore.isSavingCloud}
@@ -671,14 +808,14 @@
                 <Share2 class="w-5 h-5" />
                 <div>
                   <div class="font-bold text-sm">
-                    {panelStore.cloudPlanId ? 'Save As New Cloud Plan Copy (R2)' : 'Save to Cloud Storage (R2)'}
+                    {panelStore.cloudPlanId ? 'Save As New Cloud Plan Copy (Fork)' : 'Save to Cloud Storage (R2)'}
                   </div>
                   <div class="text-[11px] text-emerald-100">
-                    Generates a new shareable link (/plan/&lt;new-id&gt;) in Cloudflare R2
+                    Generates a new shareable link (/plan/&lt;new-id&gt;) where you are the author
                   </div>
                 </div>
               </div>
-              <span class="font-mono text-xs bg-emerald-700/80 px-2.5 py-1 rounded">Cloud R2</span>
+              <span class="font-mono text-xs bg-emerald-700/80 px-2.5 py-1 rounded">New Copy</span>
             </button>
 
             <button
@@ -783,6 +920,13 @@
                   {/if}
                 </button>
               </div>
+
+              <div class="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1">
+                <ShieldCheck class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>
+                  Protected: Other engineers viewing this link cannot overwrite your plan. They can view, inspect, calculate BOM, and save their own copy.
+                </span>
+              </div>
             </div>
           {/if}
 
@@ -797,19 +941,90 @@
               <span>Save as New Link Copy</span>
             </button>
 
-            <button
-              type="button"
-              disabled={panelStore.isSavingCloud}
-              class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition shadow-lg shadow-emerald-600/20"
-              onclick={() => handleSaveToCloud(false)}
-            >
-              <Cloud class="w-4 h-4" />
-              <span>Update Cloud Plan</span>
-            </button>
+            {#if panelStore.canEditCurrentPlan}
+              <button
+                type="button"
+                disabled={panelStore.isSavingCloud}
+                class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition shadow-lg shadow-emerald-600/20"
+                onclick={() => handleSaveToCloud(false)}
+              >
+                <Cloud class="w-4 h-4" />
+                <span>Update Cloud Plan</span>
+              </button>
+            {/if}
           </div>
         </div>
 
-      <!-- 5. INCOMING SHARED LINK PROMPT (/plan/<id>) -->
+      <!-- 5. UNLOCK PLAN MODAL -->
+      {:else if mode === 'unlock'}
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-amber-950/60 border border-amber-700/60 rounded-xl text-amber-400">
+              <KeyRound class="w-5 h-5" />
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-slate-100">Unlock Direct Editing</h2>
+              <p class="text-xs text-slate-400">Enter the author's passphrase to gain direct edit rights for /plan/{panelStore.cloudPlanId}.</p>
+            </div>
+          </div>
+          <button class="text-slate-400 hover:text-slate-200 p-1.5 hover:bg-slate-800 rounded-lg transition" onclick={onClose}>
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4 text-xs">
+          {#if unlockError}
+            <div class="bg-red-950/40 border border-red-700/60 text-red-200 p-3 rounded-xl flex items-center gap-2">
+              <AlertCircle class="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span>{unlockError}</span>
+            </div>
+          {/if}
+
+          <p class="text-slate-300 leading-relaxed">
+            The author has protected this plan with a passphrase. If the author shared the passphrase with you, enter it below to unlock direct overwriting rights from this browser.
+          </p>
+
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Author's Passphrase</label>
+            <input
+              type="password"
+              bind:value={unlockPassphrase}
+              placeholder="Enter passphrase..."
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-100 outline-none focus:border-amber-500 font-mono text-sm"
+              onkeydown={(e) => {
+                if (e.key === 'Enter' && unlockPassphrase.trim()) {
+                  handleUnlock();
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            onclick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!unlockPassphrase.trim() || unlockLoading}
+            class="px-4 py-2 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-amber-600/20"
+            onclick={handleUnlock}
+          >
+            {#if unlockLoading}
+              <RefreshCw class="w-3.5 h-3.5 animate-spin" />
+              <span>Verifying...</span>
+            {:else}
+              <Unlock class="w-3.5 h-3.5" />
+              <span>Unlock Plan</span>
+            {/if}
+          </button>
+        </div>
+
+      <!-- 6. INCOMING SHARED LINK PROMPT (/plan/<id>) -->
       {:else if mode === 'incoming_shared'}
         <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -844,7 +1059,18 @@
             </div>
           {:else if incomingPlanPayload}
             <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-              <div class="text-sm font-bold text-white">{incomingPlanPayload.title}</div>
+              <div class="text-sm font-bold text-white flex items-center gap-2">
+                <span>{incomingPlanPayload.title}</span>
+                {#if incomingPlanPayload.canEdit}
+                  <span class="inline-flex items-center gap-0.5 font-mono text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-700/50">
+                    <ShieldCheck class="w-2.5 h-2.5" /> Author
+                  </span>
+                {:else}
+                  <span class="inline-flex items-center gap-0.5 font-mono text-[9px] px-1.5 py-0.2 rounded bg-amber-950/70 text-amber-300 border border-amber-700/50">
+                    <Lock class="w-2.5 h-2.5" /> Read-Only
+                  </span>
+                {/if}
+              </div>
               <div class="flex flex-wrap gap-3 text-slate-400 text-[11px]">
                 {#if incomingPlanPayload.author}
                   <span>Prepared by: <strong class="text-slate-200">{incomingPlanPayload.author}</strong></span>
@@ -895,4 +1121,3 @@
     </div>
   </div>
 {/if}
-

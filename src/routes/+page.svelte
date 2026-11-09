@@ -103,11 +103,12 @@
 
   async function handleQuickSave() {
     panelStore.saveToLocalStorage(false);
-    if (panelStore.cloudPlanId) {
+    if (panelStore.cloudPlanId && panelStore.canEditCurrentPlan) {
       try {
         const res = await panelStore.saveToCloud(false);
         showToast(`Saved to cloud (/plan/${res.id})`);
-      } catch {
+      } catch (e: any) {
+        showToast(e?.message || 'Could not overwrite plan');
         fileModalMode = 'save_as';
       }
     } else {
