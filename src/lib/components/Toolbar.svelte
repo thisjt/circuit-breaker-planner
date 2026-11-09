@@ -24,15 +24,31 @@
     Zap,
     ShieldAlert,
     Cpu,
+    PanelLeftClose,
+    PanelLeftOpen,
+    PanelRightClose,
+    PanelRightOpen,
   } from "@lucide/svelte";
 
   interface Props {
     onOpenBOM: () => void;
     onOpenLabels: () => void;
     onOpenDRC: () => void;
+    isLeftSidebarOpen?: boolean;
+    isRightSidebarOpen?: boolean;
+    onToggleLeftSidebar?: () => void;
+    onToggleRightSidebar?: () => void;
   }
 
-  let { onOpenBOM, onOpenLabels, onOpenDRC }: Props = $props();
+  let {
+    onOpenBOM,
+    onOpenLabels,
+    onOpenDRC,
+    isLeftSidebarOpen = true,
+    isRightSidebarOpen = true,
+    onToggleLeftSidebar,
+    onToggleRightSidebar,
+  }: Props = $props();
 
   let fileInput: HTMLInputElement | null = $state(null);
   let showBusbarModal = $state(false);
@@ -107,6 +123,23 @@
   <!-- Left: Multi-Panel Switcher, Brand & Presets -->
   <div class="flex items-center gap-3 flex-shrink-0">
     <div class="flex items-center gap-2">
+      {#if onToggleLeftSidebar}
+        <button
+          type="button"
+          class="p-1.5 rounded-lg border transition flex items-center justify-center {isLeftSidebarOpen
+            ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
+            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'}"
+          onclick={onToggleLeftSidebar}
+          title="{isLeftSidebarOpen ? 'Hide' : 'Show'} Left Component Library ([)"
+        >
+          {#if isLeftSidebarOpen}
+            <PanelLeftClose class="w-4 h-4" />
+          {:else}
+            <PanelLeftOpen class="w-4 h-4" />
+          {/if}
+        </button>
+      {/if}
+
       <div
         class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 text-sm flex-shrink-0"
       >
@@ -433,6 +466,23 @@
       >
         <Trash2 class="w-3.5 h-3.5" />
       </button>
+
+      {#if onToggleRightSidebar}
+        <button
+          type="button"
+          class="p-1.5 rounded-lg border transition flex items-center justify-center ml-1 {isRightSidebarOpen
+            ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
+            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'}"
+          onclick={onToggleRightSidebar}
+          title="{isRightSidebarOpen ? 'Hide' : 'Show'} Right Inspector Panel (])"
+        >
+          {#if isRightSidebarOpen}
+            <PanelRightClose class="w-4 h-4" />
+          {:else}
+            <PanelRightOpen class="w-4 h-4" />
+          {/if}
+        </button>
+      {/if}
     </div>
   </div>
 </header>

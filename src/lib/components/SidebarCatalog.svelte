@@ -8,6 +8,7 @@
     ChevronDown,
     ChevronRight,
     ChevronsUpDown,
+    PanelLeftClose,
     ShieldAlert,
     Power,
     Zap,
@@ -20,7 +21,56 @@
     Layers,
   } from "@lucide/svelte";
 
+  interface Props {
+    onCollapse?: () => void;
+  }
+
+  let { onCollapse }: Props = $props();
+
   let searchQuery = $state("");
+
+  const ACCORDION_STORAGE_KEY = "cb_planner_sidebar_accordions_v1";
+
+  const DEFAULT_EXPANDED_SECTIONS: Record<string, boolean> = {
+    solar: true,
+    mccb_cat: false,
+    main_switch: true,
+    rcd: false,
+    rcbo: false,
+    mcb: true,
+    spd: false,
+    ats: false,
+    smart: false,
+    terminal: false,
+    accessory: false,
+  };
+
+  function loadExpandedSections(): Record<string, boolean> {
+    if (typeof window === "undefined") {
+      return { ...DEFAULT_EXPANDED_SECTIONS };
+    }
+    try {
+      const saved = localStorage.getItem(ACCORDION_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object") {
+          return { ...DEFAULT_EXPANDED_SECTIONS, ...parsed };
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load sidebar accordion state:", e);
+    }
+    return { ...DEFAULT_EXPANDED_SECTIONS };
+  }
+
+  function saveExpandedSections(stateMap: Record<string, boolean>) {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(stateMap));
+    } catch (e) {
+      console.warn("Failed to save sidebar accordion state:", e);
+    }
+  }
 
   interface SectionDef {
     id: string;
@@ -124,35 +174,26 @@
     },
   ];
 
-  // Accordion open/collapse states
-  let expandedSections = $state<Record<string, boolean>>({
-    solar: true,
-    mccb_cat: false,
-    main_switch: true,
-    rcd: false,
-    rcbo: false,
-    mcb: true,
-    spd: false,
-    ats: false,
-    smart: false,
-    terminal: false,
-    accessory: false,
-  });
+  // Accordion open/collapse states (persisted in localStorage)
+  let expandedSections = $state<Record<string, boolean>>(loadExpandedSections());
 
   function toggleSection(id: string) {
     expandedSections[id] = !expandedSections[id];
+    saveExpandedSections(expandedSections);
   }
 
   function expandAll() {
     for (const s of SECTIONS) {
       expandedSections[s.id] = true;
     }
+    saveExpandedSections(expandedSections);
   }
 
   function collapseAll() {
     for (const s of SECTIONS) {
       expandedSections[s.id] = false;
     }
+    saveExpandedSections(expandedSections);
   }
 
   const cleanQuery = $derived(searchQuery.trim().toLowerCase());
@@ -324,26 +365,38 @@
 </script>
 
 <aside
-  class="w-80 bg-slate-900 border-r border-slate-800 flex flex-col h-full text-slate-200 select-none"
+  class="w-80 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col h-full text-slate-200 select-none"
 >
   <!-- Search Bar Header -->
   <div class="p-3 border-b border-slate-800 space-y-2">
-    <div class="relative">
-      <Search class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-      <input
-        type="text"
-        placeholder="Search components (e.g. 63A, solar, RCD)..."
-        bind:value={searchQuery}
-        class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 transition"
-      />
-      {#if searchQuery}
+    <div class="flex items-center gap-1.5">
+      <div class="relative flex-1">
+        <Search class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search components (e.g. 63A, solar)..."
+          bind:value={searchQuery}
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 transition"
+        />
+        {#if searchQuery}
+          <button
+            type="button"
+            class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 p-0.5 rounded transition"
+            onclick={() => (searchQuery = "")}
+            title="Clear search"
+          >
+            <X class="w-3.5 h-3.5" />
+          </button>
+        {/if}
+      </div>
+      {#if onCollapse}
         <button
           type="button"
-          class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 p-0.5 rounded transition"
-          onclick={() => (searchQuery = "")}
-          title="Clear search"
+          class="p-1.5 text-slate-400 hover:text-slate-100 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg transition flex-shrink-0"
+          onclick={onCollapse}
+          title="Collapse Left Library Sidebar ([)"
         >
-          <X class="w-3.5 h-3.5" />
+          <PanelLeftClose class="w-4 h-4" />
         </button>
       {/if}
     </div>

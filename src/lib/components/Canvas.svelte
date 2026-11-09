@@ -419,6 +419,44 @@
     equipmentDragOffset = { x: rawX - eq.x, y: rawY - eq.y };
   }
 
+  let lastDraftStartTime = $state(0);
+
+  // Terminal mousedown handler (starts or completes wire draft)
+  function handleTerminalMouseDown(
+    deviceId: string,
+    terminalId: string,
+    e: MouseEvent,
+    suggestedRole?: WireRole
+  ) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const coords = getTerminalCoords(deviceId, terminalId);
+    if (!coords) return;
+
+    if (!panelStore.wireDraft) {
+      if (suggestedRole) {
+        panelStore.activeWireRole = suggestedRole;
+      }
+      lastDraftStartTime = Date.now();
+      panelStore.startWireDraft(deviceId, terminalId, coords.x, coords.y);
+    } else {
+      panelStore.completeWireDraft(deviceId, terminalId);
+    }
+  }
+
+  // Terminal mouseup handler (supports press-drag-release wiring between two terminals)
+  function handleTerminalMouseUp(deviceId: string, terminalId: string, e: MouseEvent) {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    if (
+      panelStore.wireDraft &&
+      (panelStore.wireDraft.sourceDeviceId !== deviceId ||
+        panelStore.wireDraft.sourceTerminalId !== terminalId)
+    ) {
+      panelStore.completeWireDraft(deviceId, terminalId);
+    }
+  }
+
   // Equipment terminal click
   function handleEquipmentTerminalMouseDown(
     eqId: string,
@@ -426,29 +464,7 @@
     suggestedRole: WireRole = 'line1',
     e: MouseEvent
   ) {
-    e.stopPropagation();
-    const coords = getTerminalCoords(eqId, terminalId);
-    if (!coords) return;
-
-    if (!panelStore.wireDraft) {
-      panelStore.activeWireRole = suggestedRole;
-      panelStore.startWireDraft(eqId, terminalId, coords.x, coords.y);
-    } else {
-      panelStore.completeWireDraft(eqId, terminalId);
-    }
-  }
-
-  // Terminal click handler
-  function handleTerminalMouseDown(deviceId: string, terminalId: string, e: MouseEvent) {
-    e.stopPropagation();
-    const coords = getTerminalCoords(deviceId, terminalId);
-    if (!coords) return;
-
-    if (!panelStore.wireDraft) {
-      panelStore.startWireDraft(deviceId, terminalId, coords.x, coords.y);
-    } else {
-      panelStore.completeWireDraft(deviceId, terminalId);
-    }
+    handleTerminalMouseDown(eqId, terminalId, e, suggestedRole);
   }
 
   // Handle double clicking wire to add waypoint node
@@ -470,6 +486,7 @@
 
   function handleCanvasClick(e: MouseEvent) {
     if (panelStore.wireDraft) {
+      if (Date.now() - lastDraftStartTime < 250) return;
       panelStore.cancelWireDraft();
     } else {
       panelStore.clearSelection();
@@ -622,8 +639,9 @@
                 <g
                   class="terminal-pe cursor-pointer group"
                   transform="translate({holeX}, 8)"
-                  onmousedown={(e) => handleTerminalMouseDown(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e)}
-                  onclick={(e) => handleTerminalMouseDown(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e)}
+                  onmousedown={(e) => handleTerminalMouseDown(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e, 'earth')}
+                  onmouseup={(e) => handleTerminalMouseUp(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e)}
+                  onclick={(e) => e.stopPropagation()}
                   role="button"
                   tabindex="0"
                 >
@@ -669,8 +687,9 @@
                 <g
                   class="terminal-n cursor-pointer group"
                   transform="translate({holeX}, 8)"
-                  onmousedown={(e) => handleTerminalMouseDown(`N_BAR_${panel.id}`, `N_${idx + 1}`, e)}
-                  onclick={(e) => handleTerminalMouseDown(`N_BAR_${panel.id}`, `N_${idx + 1}`, e)}
+                  onmousedown={(e) => handleTerminalMouseDown(`N_BAR_${panel.id}`, `N_${idx + 1}`, e, 'neutral')}
+                  onmouseup={(e) => handleTerminalMouseUp(`N_BAR_${panel.id}`, `N_${idx + 1}`, e)}
+                  onclick={(e) => e.stopPropagation()}
                   role="button"
                   tabindex="0"
                 >
@@ -875,6 +894,7 @@
               moduleWidthPx={MODULE_WIDTH_PX}
               heightPx={DEVICE_HEIGHT_PX}
               onTerminalMouseDown={handleTerminalMouseDown}
+              onTerminalMouseUp={handleTerminalMouseUp}
             />
           {/each}
 
@@ -961,7 +981,8 @@
               class="terminal cursor-pointer group/pvpos"
               transform="translate(30, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'PV+', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -977,7 +998,8 @@
               class="terminal cursor-pointer group/pvneg"
               transform="translate({w - 30}, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'PV-', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1027,7 +1049,8 @@
               class="terminal cursor-pointer group/batpos"
               transform="translate(32, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'BAT+', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1043,7 +1066,8 @@
               class="terminal cursor-pointer group/batneg"
               transform="translate({w - 32}, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'BAT-', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1088,7 +1112,8 @@
               class="terminal cursor-pointer group/mccbl1in"
               transform="translate(28, 14)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_IN', 'line1', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_IN', 'line1', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'L1_IN', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1100,7 +1125,8 @@
               class="terminal cursor-pointer group/mccbl2in"
               transform="translate({w - 28}, 14)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_IN', 'line2', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_IN', 'line2', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'L2_IN', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1114,7 +1140,8 @@
               class="terminal cursor-pointer group/mccbl1out"
               transform="translate(28, {h - 14})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_OUT', 'line1', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L1_OUT', 'line1', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'L1_OUT', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1126,7 +1153,8 @@
               class="terminal cursor-pointer group/mccbl2out"
               transform="translate({w - 28}, {h - 14})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_OUT', 'line2', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'L2_OUT', 'line2', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'L2_OUT', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1184,7 +1212,8 @@
               class="terminal cursor-pointer group/pv1pos"
               transform="translate(28, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1+', 'dc_pos', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1+', 'dc_pos', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'PV1+', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1197,7 +1226,8 @@
               class="terminal cursor-pointer group/pv1neg"
               transform="translate(56, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1-', 'dc_neg', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV1-', 'dc_neg', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'PV1-', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1210,7 +1240,8 @@
               class="terminal cursor-pointer group/hybbatpos"
               transform="translate({w - 56}, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'BAT+', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1223,7 +1254,8 @@
               class="terminal cursor-pointer group/hybbatneg"
               transform="translate({w - 26}, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'BAT-', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1238,7 +1270,8 @@
               class="terminal cursor-pointer group/acinl"
               transform="translate(26, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_L', 'line1', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_L', 'line1', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_IN_L', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1251,7 +1284,8 @@
               class="terminal cursor-pointer group/acinn"
               transform="translate(50, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_N', 'neutral', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_N', 'neutral', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_IN_N', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1264,7 +1298,8 @@
               class="terminal cursor-pointer group/acinpe"
               transform="translate(74, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_PE', 'earth', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_IN_PE', 'earth', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_IN_PE', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1278,7 +1313,8 @@
               class="terminal cursor-pointer group/acoutl"
               transform="translate({w - 74}, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_OUT_L', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1291,7 +1327,8 @@
               class="terminal cursor-pointer group/acoutn"
               transform="translate({w - 50}, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_OUT_N', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1304,7 +1341,8 @@
               class="terminal cursor-pointer group/acoutpe"
               transform="translate({w - 26}, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_OUT_PE', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1347,7 +1385,8 @@
               class="terminal cursor-pointer group/ogpvpos"
               transform="translate(32, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV+', 'dc_pos', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'PV+', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1359,7 +1398,8 @@
               class="terminal cursor-pointer group/ogpvneg"
               transform="translate(60, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'PV-', 'dc_neg', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'PV-', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1371,7 +1411,8 @@
               class="terminal cursor-pointer group/ogbatpos"
               transform="translate({w - 60}, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT+', 'dc_pos', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'BAT+', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1383,7 +1424,8 @@
               class="terminal cursor-pointer group/ogbatneg"
               transform="translate({w - 32}, 16)"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'BAT-', 'dc_neg', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'BAT-', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1397,7 +1439,8 @@
               class="terminal cursor-pointer group/ogacoutl"
               transform="translate(36, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_L', 'line1', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_OUT_L', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1409,7 +1452,8 @@
               class="terminal cursor-pointer group/ogacoutn"
               transform="translate(72, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_N', 'neutral', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_OUT_N', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1421,7 +1465,8 @@
               class="terminal cursor-pointer group/ogacoutpe"
               transform="translate(108, {h - 16})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, 'AC_OUT_PE', 'earth', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, 'AC_OUT_PE', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1477,7 +1522,8 @@
               class="terminal cursor-pointer group/term1"
               transform="translate(24, {termY})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, '1', 'line1', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, '1', 'line1', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, '1', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1494,7 +1540,8 @@
               class="terminal cursor-pointer group/term2"
               transform="translate({w - 24}, {termY})"
               onmousedown={(e) => handleEquipmentTerminalMouseDown(eq.id, '2', 'neutral', e)}
-              onclick={(e) => handleEquipmentTerminalMouseDown(eq.id, '2', 'neutral', e)}
+              onmouseup={(e) => handleTerminalMouseUp(eq.id, '2', e)}
+              onclick={(e) => e.stopPropagation()}
               role="button"
               tabindex="0"
             >
@@ -1521,8 +1568,34 @@
 
           <g
             class="wire-group cursor-pointer group"
+            pointer-events={panelStore.wireDraft || panelStore.activeTool === 'wire' ? 'none' : 'auto'}
+            onmousedown={(e) => {
+              if (e.button !== 0 || !svgElement) return;
+              const rect = svgElement.getBoundingClientRect();
+              const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
+              const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
+              if (Math.hypot(rawX - src.x, rawY - src.y) <= 15) {
+                handleTerminalMouseDown(wire.sourceDeviceId, wire.sourceTerminalId, e);
+                return;
+              }
+              if (Math.hypot(rawX - tgt.x, rawY - tgt.y) <= 15) {
+                handleTerminalMouseDown(wire.targetDeviceId, wire.targetTerminalId, e);
+                return;
+              }
+            }}
             onclick={(e) => {
               e.stopPropagation();
+              if (svgElement) {
+                const rect = svgElement.getBoundingClientRect();
+                const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
+                const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
+                if (
+                  Math.hypot(rawX - src.x, rawY - src.y) <= 15 ||
+                  Math.hypot(rawX - tgt.x, rawY - tgt.y) <= 15
+                ) {
+                  return;
+                }
+              }
               panelStore.select('wire', wire.id);
             }}
             ondblclick={(e) => handleWireDoubleClick(wire.id, e)}
@@ -1589,8 +1662,8 @@
             {/if}
 
             <!-- Source & Target Terminal Ring Caps -->
-            <circle cx={src.x} cy={src.y} r="3.8" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
-            <circle cx={tgt.x} cy={tgt.y} r="3.8" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
+            <circle cx={src.x} cy={src.y} r="3.8" pointer-events="none" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
+            <circle cx={tgt.x} cy={tgt.y} r="3.8" pointer-events="none" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
 
             <!-- DRAGGABLE WAYPOINT NODES (When wire is selected) -->
             {#if isSelected}

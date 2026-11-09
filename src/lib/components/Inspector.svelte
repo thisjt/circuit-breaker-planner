@@ -21,7 +21,14 @@
     RefreshCw,
     ShieldAlert,
     Cpu,
+    PanelRightClose,
   } from "@lucide/svelte";
+
+  interface Props {
+    onCollapse?: () => void;
+  }
+
+  let { onCollapse }: Props = $props();
 
   const selectedDevice = $derived(panelStore.selectedDevice);
   const selectedWire = $derived(panelStore.selectedWire);
@@ -103,8 +110,24 @@
 </script>
 
 <aside
-  class="w-80 bg-slate-900 border-l border-slate-800 flex flex-col h-full text-slate-200 select-none overflow-y-auto"
+  class="w-80 flex-shrink-0 bg-slate-900 border-l border-slate-800 flex flex-col h-full text-slate-200 select-none overflow-y-auto"
 >
+  {#if onCollapse}
+    <div class="px-3 py-2 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
+      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Inspector & Properties
+      </span>
+      <button
+        type="button"
+        class="p-1 text-slate-400 hover:text-slate-100 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md transition flex items-center gap-1 text-[10px]"
+        onclick={onCollapse}
+        title="Collapse Right Inspector Sidebar (])"
+      >
+        <span>Hide</span>
+        <PanelRightClose class="w-3.5 h-3.5" />
+      </button>
+    </div>
+  {/if}
   <!-- 1. DIN RAIL DEVICE SELECTED -->
   {#if selectedDevice && selectedDeviceDef}
     <div

@@ -14,6 +14,11 @@
       terminalId: string,
       event: MouseEvent,
     ) => void;
+    onTerminalMouseUp?: (
+      deviceId: string,
+      terminalId: string,
+      event: MouseEvent,
+    ) => void;
   }
 
   let {
@@ -23,6 +28,7 @@
     moduleWidthPx = 44,
     heightPx = 160,
     onTerminalMouseDown,
+    onTerminalMouseUp,
   }: Props = $props();
 
   const def = $derived(getDeviceDef(device.typeId));
@@ -52,6 +58,13 @@
     e.stopPropagation();
     if (onTerminalMouseDown) {
       onTerminalMouseDown(device.id, term.id, e);
+    }
+  }
+
+  function handleTerminalRelease(term: TerminalDef, e: MouseEvent) {
+    e.stopPropagation();
+    if (onTerminalMouseUp) {
+      onTerminalMouseUp(device.id, term.id, e);
     }
   }
 </script>
@@ -1301,7 +1314,8 @@
       class="terminal terminal-top cursor-pointer group"
       transform="translate({termX}, {termY})"
       onmousedown={(e) => handleTerminalClick(term, e)}
-      onclick={(e) => handleTerminalClick(term, e)}
+      onmouseup={(e) => handleTerminalRelease(term, e)}
+      onclick={(e) => e.stopPropagation()}
       role="button"
       tabindex="0"
     >
@@ -1362,7 +1376,8 @@
       class="terminal terminal-bottom cursor-pointer group"
       transform="translate({termX}, {termY})"
       onmousedown={(e) => handleTerminalClick(term, e)}
-      onclick={(e) => handleTerminalClick(term, e)}
+      onmouseup={(e) => handleTerminalRelease(term, e)}
+      onclick={(e) => e.stopPropagation()}
       role="button"
       tabindex="0"
     >
