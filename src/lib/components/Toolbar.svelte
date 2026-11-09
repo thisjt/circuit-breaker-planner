@@ -11,6 +11,7 @@
     AlertTriangle,
     FileSpreadsheet,
     Printer,
+    Image,
     Download,
     Upload,
     Trash2,
@@ -81,11 +82,99 @@
     URL.revokeObjectURL(url);
   }
 
+  function buildExportableSvg(): {
+    clonedSvg: SVGSVGElement;
+    width: number;
+    height: number;
+  } | null {
+    const svg = (document.getElementById("circuit-diagram-svg") ||
+      document.querySelector("svg")) as SVGSVGElement | null;
+    if (!svg) return null;
+
+    let exportX = 0;
+    let exportY = 0;
+    let exportWidth = svg.clientWidth || 1200;
+    let exportHeight = svg.clientHeight || 800;
+
+    const contentLayer = svg.querySelector(
+      "#canvas-content-layer",
+    ) as SVGGraphicsElement | null;
+    if (contentLayer) {
+      try {
+        const bbox = contentLayer.getBBox();
+        if (bbox.width > 0 && bbox.height > 0) {
+          const margin = 60;
+          exportX = Math.floor(bbox.x - margin);
+          exportY = Math.floor(bbox.y - margin);
+          exportWidth = Math.ceil(bbox.width + margin * 2);
+          exportHeight = Math.ceil(bbox.height + margin * 2);
+        }
+      } catch {
+        // Fallback to viewport dimensions if getBBox fails
+      }
+    }
+
+    const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
+    clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clonedSvg.setAttribute("width", String(exportWidth));
+    clonedSvg.setAttribute("height", String(exportHeight));
+    clonedSvg.setAttribute(
+      "viewBox",
+      `${exportX} ${exportY} ${exportWidth} ${exportHeight}`,
+    );
+
+    // Inline essential styles so standalone SVG/PNG rasterization preserves fonts and hidden hover elements
+    const styleEl = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "style",
+    );
+    styleEl.textContent = `
+      svg { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .uppercase { text-transform: uppercase; }
+      .tracking-wider { letter-spacing: 0.05em; }
+      .tracking-widest { letter-spacing: 0.1em; }
+      .opacity-0 { opacity: 0; }
+    `;
+    clonedSvg.insertBefore(styleEl, clonedSvg.firstChild);
+
+    const clonedPattern = clonedSvg.querySelector("#grid");
+    if (clonedPattern) {
+      clonedPattern.setAttribute("patternTransform", "");
+    }
+
+    const clonedGridRect = clonedSvg.querySelector("#canvas-grid-bg");
+    if (clonedGridRect && clonedGridRect.parentNode) {
+      clonedGridRect.setAttribute("x", String(exportX));
+      clonedGridRect.setAttribute("y", String(exportY));
+      clonedGridRect.setAttribute("width", String(exportWidth));
+      clonedGridRect.setAttribute("height", String(exportHeight));
+
+      const solidBg = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect",
+      );
+      solidBg.setAttribute("x", String(exportX));
+      solidBg.setAttribute("y", String(exportY));
+      solidBg.setAttribute("width", String(exportWidth));
+      solidBg.setAttribute("height", String(exportHeight));
+      solidBg.setAttribute("fill", "#020617");
+      clonedGridRect.parentNode.insertBefore(solidBg, clonedGridRect);
+    }
+
+    const clonedContentLayer = clonedSvg.querySelector("#canvas-content-layer");
+    if (clonedContentLayer) {
+      clonedContentLayer.setAttribute("transform", "");
+    }
+
+    return { clonedSvg, width: exportWidth, height: exportHeight };
+  }
+
   function handleExportSVG() {
-    const svg = document.querySelector("svg");
-    if (!svg) return;
+    const exported = buildExportableSvg();
+    if (!exported) return;
     const serializer = new XMLSerializer();
-    const source = serializer.serializeToString(svg);
+    const source = serializer.serializeToString(exported.clonedSvg);
     const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -93,6 +182,56 @@
     a.download = `${panelStore.activePanel.name.toLowerCase().replace(/\s+/g, "_")}.svg`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function handleExportPNG() {
+    const exported = buildExportableSvg();
+    if (!exported) return;
+    const { clonedSvg, width, height } = exported;
+
+    const serializer = new XMLSerializer();
+    const source = serializer.serializeToString(clonedSvg);
+    const svgBlob = new Blob([source], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new window.Image();
+    img.onload = () => {
+      const scale = Math.max(
+        1,
+        Math.min(2, Math.floor(8192 / Math.max(width, height, 1))),
+      );
+      const canvas = document.createElement("canvas");
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      ctx.fillStyle = "#020617";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob((pngBlob) => {
+        if (!pngBlob) return;
+        const pngUrl = URL.createObjectURL(pngBlob);
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        a.download = `${panelStore.activePanel.name.toLowerCase().replace(/\s+/g, "_")}_diagram.png`;
+        a.click();
+        URL.revokeObjectURL(pngUrl);
+      }, "image/png");
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
   }
 
   function handleAddBusbarSubmit() {
@@ -324,7 +463,17 @@
       <span>Labels</span>
     </button>
 
-    <!-- Export JSON / SVG -->
+    <!-- Export Diagram as PNG Button -->
+    <button
+      class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition"
+      onclick={handleExportPNG}
+      title="Export Diagram as PNG Image (.png)"
+    >
+      <Image class="w-3.5 h-3.5 text-purple-400" />
+      <span>PNG</span>
+    </button>
+
+    <!-- Export JSON / Import / Clear -->
     <div class="flex items-center gap-1">
       <button
         class="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"

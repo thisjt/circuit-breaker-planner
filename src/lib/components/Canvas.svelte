@@ -595,6 +595,7 @@
   aria-label="Circuit Breaker Canvas"
 >
   <svg
+    id="circuit-diagram-svg"
     bind:this={svgElement}
     class="w-full h-full"
     onmousedown={handleMouseDown}
@@ -634,7 +635,7 @@
     />
 
     <!-- Canvas Transform Layer -->
-    <g transform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})">
+    <g id="canvas-content-layer" transform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})">
       <!-- MULTIPLE BREAKER PANELS -->
       {#each panelStore.panels as panel (panel.id)}
         {@const pRailSpacing = panel.railSpacing || 230}
