@@ -391,9 +391,10 @@ export class PanelState {
   movePanel(id: string, x: number, y: number) {
     const p = this.panels.find((panel) => panel.id === id);
     if (!p) return;
-    p.x = Math.round(x / 5) * 5;
-    p.y = Math.round(y / 5) * 5;
-    this.saveToLocalStorage();
+    const nextX = Math.round(x / 5) * 5;
+    const nextY = Math.round(y / 5) * 5;
+    if (p.x !== nextX) p.x = nextX;
+    if (p.y !== nextY) p.y = nextY;
   }
 
   setActivePanel(id: string) {
@@ -775,9 +776,10 @@ export class PanelState {
   updateWireWaypoint(wireId: string, nodeIndex: number, newPoint: WirePoint) {
     const wire = this.wires.find((w) => w.id === wireId);
     if (!wire || !wire.waypoints || !wire.waypoints[nodeIndex]) return;
-    wire.waypoints[nodeIndex].x = Math.round(newPoint.x);
-    wire.waypoints[nodeIndex].y = Math.round(newPoint.y);
-    this.saveToLocalStorage();
+    const nextX = Math.round(newPoint.x);
+    const nextY = Math.round(newPoint.y);
+    if (wire.waypoints[nodeIndex].x !== nextX) wire.waypoints[nodeIndex].x = nextX;
+    if (wire.waypoints[nodeIndex].y !== nextY) wire.waypoints[nodeIndex].y = nextY;
   }
 
   removeWireWaypoint(wireId: string, nodeIndex: number) {

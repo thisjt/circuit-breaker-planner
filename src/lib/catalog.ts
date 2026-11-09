@@ -444,6 +444,10 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
   }
 ];
 
+const CATALOG_MAP = new Map<string, DeviceDefinition>(
+  DEVICE_CATALOG.map((d) => [d.typeId, d])
+);
+
 export function getDeviceDef(typeId: string): DeviceDefinition | undefined {
-  return DEVICE_CATALOG.find((d) => d.typeId === typeId);
+  return CATALOG_MAP.get(typeId);
 }

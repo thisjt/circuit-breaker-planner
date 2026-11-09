@@ -2,7 +2,7 @@
   import { panelStore } from '#lib/state.svelte';
   import { getDeviceDef } from '#lib/catalog';
   import { getGaugeDef, getWireColor, isDarkWireColor } from '#lib/wireStandards';
-  import type { FreeEquipment, WirePoint, WireRole } from '#lib/types';
+  import type { CombBusbar, FreeEquipment, PanelConfig, PlacedDevice, WirePoint, WireRole } from '#lib/types';
   import DeviceItem from './DeviceItem.svelte';
 
   const MODULE_WIDTH_PX = 44;
@@ -11,6 +11,7 @@
   const PADDING_Y = 120;
 
   let svgElement: SVGSVGElement | null = $state(null);
+  let cachedSvgRect: DOMRect | null = null;
   let isPanning = $state(false);
   let panStartX = $state(0);
   let panStartY = $state(0);
@@ -32,7 +33,56 @@
   let draggingPanelId = $state<string | null>(null);
   let panelDragOffset = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Calculate terminal absolute canvas coordinates
+  // O(1) Lookup Maps & Grouped Collections for Fast Rendering
+  const panelMap = $derived(new Map<string, PanelConfig>(panelStore.panels.map((p) => [p.id, p])));
+  const deviceMap = $derived(new Map<string, PlacedDevice>(panelStore.devices.map((d) => [d.id, d])));
+  const equipmentMap = $derived(new Map<string, FreeEquipment>(panelStore.equipment.map((e) => [e.id, e])));
+
+  const devicesByPanel = $derived.by(() => {
+    const map = new Map<string, PlacedDevice[]>();
+    const defaultPanelId = panelStore.panels[0]?.id || 'panel-1';
+    for (const p of panelStore.panels) {
+      map.set(p.id, []);
+    }
+    for (const d of panelStore.devices) {
+      const pid = d.panelId || defaultPanelId;
+      let list = map.get(pid);
+      if (!list) {
+        list = [];
+        map.set(pid, list);
+      }
+      list.push(d);
+    }
+    return map;
+  });
+
+  const busbarsByPanel = $derived.by(() => {
+    const map = new Map<string, CombBusbar[]>();
+    const defaultPanelId = panelStore.panels[0]?.id || 'panel-1';
+    for (const p of panelStore.panels) {
+      map.set(p.id, []);
+    }
+    for (const b of panelStore.busbars) {
+      const pid = b.panelId || defaultPanelId;
+      let list = map.get(pid);
+      if (!list) {
+        list = [];
+        map.set(pid, list);
+      }
+      list.push(b);
+    }
+    return map;
+  });
+
+  function getSvgRect(forceRefresh = false): DOMRect | null {
+    if (!svgElement) return null;
+    if (!cachedSvgRect || forceRefresh) {
+      cachedSvgRect = svgElement.getBoundingClientRect();
+    }
+    return cachedSvgRect;
+  }
+
+  // Calculate terminal absolute canvas coordinates in O(1)
   function getTerminalCoords(
     deviceId: string,
     terminalId: string
@@ -42,7 +92,7 @@
       const panelId = deviceId.includes(':')
         ? deviceId.split(':')[0].replace('PE_BAR_', '')
         : deviceId.replace('PE_BAR_', '');
-      const panel = panelStore.panels.find((p) => p.id === panelId) || panelStore.panels[0];
+      const panel = panelMap.get(panelId) || panelStore.panels[0];
       const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
       const index = parseInt(terminalId.replace('G_', '')) || 1;
       const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.groundBarSlots);
@@ -55,7 +105,7 @@
       const panelId = deviceId.includes(':')
         ? deviceId.split(':')[0].replace('N_BAR_', '')
         : deviceId.replace('N_BAR_', '');
-      const panel = panelStore.panels.find((p) => p.id === panelId) || panelStore.panels[0];
+      const panel = panelMap.get(panelId) || panelStore.panels[0];
       const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
       const railSpacing = panel.railSpacing || 230;
       const panelTotalHeight = panel.rows * railSpacing + PADDING_Y * 2;
@@ -66,13 +116,13 @@
     }
 
     // Free Equipment (Solar Panel, Battery, MCCB, Hybrid & Offgrid Inverters, Field Block)
-    const eq = panelStore.equipment.find((e) => e.id === deviceId);
+    const eq = equipmentMap.get(deviceId);
     if (eq) {
       return getEquipmentTerminalCoords(eq, terminalId);
     }
 
     // DIN-rail modular device
-    const device = panelStore.devices.find((d) => d.id === deviceId);
+    const device = deviceMap.get(deviceId);
     if (!device) return null;
     const def = getDeviceDef(device.typeId);
     if (!def) return null;
@@ -80,7 +130,7 @@
     const term = def.terminals.find((t) => t.id === terminalId);
     if (!term) return null;
 
-    const panel = panelStore.getPanelForDevice(device.id);
+    const panel = (device.panelId ? panelMap.get(device.panelId) : undefined) || panelStore.activePanel;
     const railSpacing = panel.railSpacing || 230;
     const railY = panel.y + PADDING_Y + device.railIndex * railSpacing;
     const devX = panel.x + PADDING_X + device.slotIndex * MODULE_WIDTH_PX;
@@ -261,10 +311,12 @@
 
   // Pan / Zoom events
   function handleMouseDown(e: MouseEvent) {
+    getSvgRect(true);
+    const target = e.target as Element;
     if (
       e.button === 1 ||
       (e.button === 0 && e.altKey) ||
-      (panelStore.activeTool === 'select' && (e.target as HTMLElement).tagName === 'svg')
+      (panelStore.activeTool === 'select' && (target.tagName === 'svg' || target.id === 'canvas-grid-bg'))
     ) {
       isPanning = true;
       panStartX = e.clientX - panelStore.pan.x;
@@ -279,8 +331,20 @@
       return;
     }
 
-    if (!svgElement) return;
-    const rect = svgElement.getBoundingClientRect();
+    // Fast early-return when idle (prevents forced layout reads on every mouse movement)
+    if (
+      !draggingWaypoint &&
+      !draggingPanelId &&
+      !draggingEquipmentId &&
+      !panelStore.wireDraft &&
+      !draggingDeviceId &&
+      !panelStore.pendingPlaceTypeId
+    ) {
+      return;
+    }
+
+    const rect = getSvgRect();
+    if (!rect) return;
     const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
     const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
 
@@ -308,10 +372,12 @@
 
     // Dragging free-place equipment
     if (draggingEquipmentId) {
-      const eq = panelStore.equipment.find((b) => b.id === draggingEquipmentId);
+      const eq = equipmentMap.get(draggingEquipmentId);
       if (eq) {
-        eq.x = Math.round((rawX - equipmentDragOffset.x) / 5) * 5;
-        eq.y = Math.round((rawY - equipmentDragOffset.y) / 5) * 5;
+        const nextX = Math.round((rawX - equipmentDragOffset.x) / 5) * 5;
+        const nextY = Math.round((rawY - equipmentDragOffset.y) / 5) * 5;
+        if (eq.x !== nextX) eq.x = nextX;
+        if (eq.y !== nextY) eq.y = nextY;
       }
       return;
     }
@@ -351,13 +417,16 @@
 
   function handleMouseUp() {
     isPanning = false;
+    let shouldPersist = false;
 
     if (draggingWaypoint) {
       draggingWaypoint = null;
+      shouldPersist = true;
     }
 
     if (draggingPanelId) {
       draggingPanelId = null;
+      shouldPersist = true;
     }
 
     // If placing from catalog
@@ -374,6 +443,10 @@
 
     if (draggingEquipmentId) {
       draggingEquipmentId = null;
+      shouldPersist = true;
+    }
+
+    if (shouldPersist) {
       panelStore.saveToLocalStorage();
     }
 
@@ -394,10 +467,10 @@
     if (e.button !== 0) return;
     e.stopPropagation();
     panelStore.select('panel', panelId);
-    const p = panelStore.panels.find((panel) => panel.id === panelId);
-    if (!p || !svgElement) return;
+    const p = panelMap.get(panelId);
+    const rect = getSvgRect(true);
+    if (!p || !rect) return;
 
-    const rect = svgElement.getBoundingClientRect();
     const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
     const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
 
@@ -410,9 +483,9 @@
     if (e.button !== 0) return;
     e.stopPropagation();
     panelStore.select('equipment', id);
-    const eq = panelStore.equipment.find((b) => b.id === id);
-    if (!eq || !svgElement) return;
-    const rect = svgElement.getBoundingClientRect();
+    const eq = equipmentMap.get(id);
+    const rect = getSvgRect(true);
+    if (!eq || !rect) return;
     const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
     const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
     draggingEquipmentId = id;
@@ -430,6 +503,7 @@
   ) {
     if (e.button !== 0) return;
     e.stopPropagation();
+    getSvgRect(true);
     const coords = getTerminalCoords(deviceId, terminalId);
     if (!coords) return;
 
@@ -470,8 +544,8 @@
   // Handle double clicking wire to add waypoint node
   function handleWireDoubleClick(wireId: string, e: MouseEvent) {
     e.stopPropagation();
-    if (!svgElement) return;
-    const rect = svgElement.getBoundingClientRect();
+    const rect = getSvgRect(true);
+    if (!rect) return;
     const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
     const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
     panelStore.addWireWaypoint(wireId, { x: rawX, y: rawY });
@@ -481,6 +555,7 @@
   function handleWaypointMouseDown(wireId: string, nodeIndex: number, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
+    getSvgRect(true);
     draggingWaypoint = { wireId, nodeIndex };
   }
 
@@ -493,6 +568,8 @@
     }
   }
 </script>
+
+<svelte:window onresize={() => (cachedSvgRect = null)} />
 
 <div
   class="relative w-full h-full overflow-hidden bg-slate-950 cursor-default select-none"
@@ -509,32 +586,38 @@
     onclick={handleCanvasClick}
     role="application"
   >
-    <!-- Background Grid Pattern -->
+    <!-- Viewport-Sized Background Grid Pattern (Avoids 8000x8000 nested pattern rasterization) -->
     <defs>
-      <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e293b" stroke-width="0.8" />
-      </pattern>
-      <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
-        <rect width="100" height="100" fill="url(#smallGrid)" />
+      <pattern
+        id="grid"
+        width="100"
+        height="100"
+        patternUnits="userSpaceOnUse"
+        patternTransform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})"
+      >
+        <path
+          d="M 20 0 V 100 M 40 0 V 100 M 60 0 V 100 M 80 0 V 100 M 0 20 H 100 M 0 40 H 100 M 0 60 H 100 M 0 80 H 100"
+          fill="none"
+          stroke="#1e293b"
+          stroke-width="0.8"
+        />
         <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#334155" stroke-width="1.2" />
       </pattern>
-      <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
-        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25" />
-      </filter>
     </defs>
+
+    <!-- Fixed Viewport Grid Background -->
+    <rect
+      id="canvas-grid-bg"
+      x="0"
+      y="0"
+      width="100%"
+      height="100%"
+      fill="url(#grid)"
+      opacity="0.6"
+    />
 
     <!-- Canvas Transform Layer -->
     <g transform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})">
-      <!-- Grid background -->
-      <rect
-        x="-2000"
-        y="-2000"
-        width="8000"
-        height="8000"
-        fill="url(#grid)"
-        opacity="0.6"
-      />
-
       <!-- MULTIPLE BREAKER PANELS -->
       {#each panelStore.panels as panel (panel.id)}
         {@const pRailSpacing = panel.railSpacing || 230}
@@ -545,6 +628,17 @@
         {@const isActivePanel = panelStore.activePanelId === panel.id}
 
         <g class="panel-enclosure" transform="translate({panel.x}, {panel.y})">
+          <!-- Lightweight Native Vector Shadow for Enclosure -->
+          <rect
+            x={PADDING_X - 24}
+            y={PADDING_Y - 87}
+            width={pRailWidthPx + 60}
+            height={pTotalHeight - PADDING_Y * 2 + 165}
+            rx="14"
+            fill="#020617"
+            opacity="0.55"
+            pointer-events="none"
+          />
           <!-- Enclosure Box Body -->
           <rect
             id="enclosure-bg-{panel.id}"
@@ -556,7 +650,7 @@
             fill="#0f172a"
             stroke={isPanelSelected ? '#38bdf8' : isActivePanel ? '#3b82f6' : '#475569'}
             stroke-width={isPanelSelected ? 3.5 : isActivePanel ? 2.5 : 2}
-            class="filter drop-shadow-2xl cursor-pointer transition-colors"
+            class="cursor-pointer"
             onclick={(e) => {
               e.stopPropagation();
               panelStore.select('panel', panel.id);
@@ -573,7 +667,7 @@
             fill={isActivePanel ? '#1e293b' : '#0f172a'}
             stroke={isActivePanel ? '#334155' : 'transparent'}
             stroke-width="1"
-            class="cursor-move hover:fill-slate-800 transition-colors"
+            class="cursor-move hover:fill-slate-800"
             onmousedown={(e) => handlePanelHeaderMouseDown(panel.id, e)}
           />
 
@@ -831,7 +925,7 @@
           {/each}
 
           <!-- PLACED COMB BUSBARS FOR THIS PANEL -->
-          {#each panelStore.busbars.filter((b) => (b.panelId || panelStore.panels[0].id) === panel.id) as busbar}
+          {#each busbarsByPanel.get(panel.id) || [] as busbar (busbar.id)}
             {@const railY = PADDING_Y + busbar.railIndex * pRailSpacing}
             {@const barX = PADDING_X + busbar.startSlot * MODULE_WIDTH_PX}
             {@const barWidth = busbar.slotSpan * MODULE_WIDTH_PX}
@@ -856,7 +950,6 @@
                 fill={isSelected ? '#3b82f6' : '#e2e8f0'}
                 stroke={isSelected ? '#1d4ed8' : '#94a3b8'}
                 stroke-width="1.5"
-                class="filter drop-shadow-md"
               />
               <text
                 x={barX + barWidth / 2}
@@ -884,7 +977,7 @@
           {/each}
 
           <!-- PLACED DEVICES FOR THIS PANEL -->
-          {#each panelStore.devices.filter((d) => (d.panelId || panelStore.panels[0].id) === panel.id) as device}
+          {#each devicesByPanel.get(panel.id) || [] as device (device.id)}
             {@const devX = PADDING_X + device.slotIndex * MODULE_WIDTH_PX}
             {@const devY = PADDING_Y + device.railIndex * pRailSpacing}
             <DeviceItem
@@ -935,6 +1028,18 @@
           role="button"
           tabindex="0"
         >
+          <!-- Lightweight Native Vector Shadow for Equipment -->
+          <rect
+            x="3"
+            y="5"
+            width={w}
+            height={h}
+            rx="6"
+            fill="#020617"
+            opacity="0.45"
+            pointer-events="none"
+          />
+
           <!-- 1. SOLAR PANEL (Photovoltaic Monocrystalline Module) -->
           {#if eq.type === 'solar_panel'}
             <rect
@@ -946,7 +1051,7 @@
               fill="#091428"
               stroke={isSelected ? '#38bdf8' : '#94a3b8'}
               stroke-width={isSelected ? 3 : 1.5}
-              class="filter drop-shadow-lg transition-colors hover:stroke-amber-400"
+              class="hover:stroke-amber-400"
             />
             <!-- Aluminum Anodized Border Frame -->
             <rect x="2" y="2" width={w - 4} height={h - 4} rx="4" fill="none" stroke="#cbd5e1" stroke-width="2" />
@@ -988,7 +1093,7 @@
             >
               <circle r="14" fill="transparent" />
               <title>Solar PV+ Positive Terminal</title>
-              <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/pvpos:scale-125 transition-transform" />
+              <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/pvpos:scale-125" />
               <text x="0" y="2.5" text-anchor="middle" font-size="7" font-weight="900" fill="#ffffff">+</text>
               <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#ef4444">PV+</text>
             </g>
@@ -1005,7 +1110,7 @@
             >
               <circle r="14" fill="transparent" />
               <title>Solar PV- Negative Terminal</title>
-              <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/pvneg:scale-125 transition-transform" />
+              <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/pvneg:scale-125" />
               <text x="0" y="2.5" text-anchor="middle" font-size="8" font-weight="900" fill="#ffffff">-</text>
               <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#cbd5e1">PV-</text>
             </g>
@@ -1021,7 +1126,7 @@
               fill="#18181b"
               stroke={isSelected ? '#38bdf8' : '#71717a'}
               stroke-width={isSelected ? 3 : 1.5}
-              class="filter drop-shadow-lg transition-colors hover:stroke-emerald-400"
+              class="hover:stroke-emerald-400"
             />
             <!-- Green Energy Storage Accent Bar -->
             <rect x="0" y="0" width={w} height="4" rx="2" fill="#10b981" />
@@ -1056,7 +1161,7 @@
             >
               <circle r="14" fill="transparent" />
               <title>Battery Positive (BAT+)</title>
-              <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/batpos:scale-125 transition-transform" />
+              <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/batpos:scale-125" />
               <text x="0" y="2.5" text-anchor="middle" font-size="7" font-weight="900" fill="#ffffff">+</text>
               <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#ef4444">BAT+</text>
             </g>
@@ -1073,7 +1178,7 @@
             >
               <circle r="14" fill="transparent" />
               <title>Battery Negative (BAT-)</title>
-              <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/batneg:scale-125 transition-transform" />
+              <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/batneg:scale-125" />
               <text x="0" y="2.5" text-anchor="middle" font-size="8" font-weight="900" fill="#ffffff">-</text>
               <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#cbd5e1">BAT-</text>
             </g>
@@ -1089,7 +1194,7 @@
               fill="#1e293b"
               stroke={isSelected ? '#38bdf8' : '#64748b'}
               stroke-width={isSelected ? 3 : 1.5}
-              class="filter drop-shadow-xl transition-colors hover:stroke-orange-400"
+              class="hover:stroke-orange-400"
             />
             <!-- Center Switch Body Inset -->
             <rect x="10" y="32" width={w - 20} height={h - 64} rx="4" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
@@ -1118,7 +1223,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl1in:scale-125 transition-transform" />
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl1in:scale-125" />
               <text x="0" y="-9" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#2563eb">L1 IN</text>
             </g>
             <g
@@ -1131,7 +1236,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl2in:scale-125 transition-transform" />
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl2in:scale-125" />
               <text x="0" y="-9" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#dc2626">L2 IN</text>
             </g>
 
@@ -1146,7 +1251,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl1out:scale-125 transition-transform" />
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl1out:scale-125" />
               <text x="0" y="14" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#2563eb">L1 OUT</text>
             </g>
             <g
@@ -1159,7 +1264,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl2out:scale-125 transition-transform" />
+              <circle r="6" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5" class="group-hover/mccbl2out:scale-125" />
               <text x="0" y="14" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#dc2626">L2 OUT</text>
             </g>
 
@@ -1174,7 +1279,7 @@
               fill="#f8fafc"
               stroke={isSelected ? '#2563eb' : '#94a3b8'}
               stroke-width={isSelected ? 3 : 1.5}
-              class="filter drop-shadow-xl transition-colors hover:stroke-blue-400"
+              class="hover:stroke-blue-400"
             />
             <!-- Top Inverter Blue Accent Header -->
             <rect x="0" y="0" width={w} height="6" rx="3" fill="#2563eb" />
@@ -1347,7 +1452,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/acoutpe:scale-125 transition-transform" />
+              <circle r="5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/acoutpe:scale-125" />
               <text x="0" y="12" text-anchor="middle" font-size="4.5" font-weight="bold" fill="#16a34a">PE</text>
             </g>
 
@@ -1362,7 +1467,7 @@
               fill="#0f172a"
               stroke={isSelected ? '#38bdf8' : '#334155'}
               stroke-width={isSelected ? 3 : 1.5}
-              class="filter drop-shadow-xl transition-colors hover:stroke-cyan-400"
+              class="hover:stroke-cyan-400"
             />
             <!-- Cyan Offgrid Accent Bar -->
             <rect x="0" y="0" width={w} height="5" rx="2" fill="#06b6d4" />
@@ -1391,7 +1496,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogpvpos:scale-125 transition-transform" />
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogpvpos:scale-125" />
               <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#ef4444">PV+</text>
             </g>
             <g
@@ -1404,7 +1509,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#334155" stroke="#94a3b8" stroke-width="1.2" class="group-hover/ogpvneg:scale-125 transition-transform" />
+              <circle r="5.5" fill="#334155" stroke="#94a3b8" stroke-width="1.2" class="group-hover/ogpvneg:scale-125" />
               <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#cbd5e1">PV-</text>
             </g>
             <g
@@ -1417,7 +1522,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogbatpos:scale-125 transition-transform" />
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogbatpos:scale-125" />
               <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#ef4444">BAT+</text>
             </g>
             <g
@@ -1430,7 +1535,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#334155" stroke="#94a3b8" stroke-width="1.2" class="group-hover/ogbatneg:scale-125 transition-transform" />
+              <circle r="5.5" fill="#334155" stroke="#94a3b8" stroke-width="1.2" class="group-hover/ogbatneg:scale-125" />
               <text x="0" y="-8" text-anchor="middle" font-size="5" font-weight="bold" fill="#cbd5e1">BAT-</text>
             </g>
 
@@ -1445,7 +1550,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogacoutl:scale-125 transition-transform" />
+              <circle r="5.5" fill="#dc2626" stroke="#fecaca" stroke-width="1.2" class="group-hover/ogacoutl:scale-125" />
               <text x="0" y="12" text-anchor="middle" font-size="5" font-weight="bold" fill="#dc2626">LOAD L</text>
             </g>
             <g
@@ -1458,7 +1563,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#0284c7" stroke="#e0f2fe" stroke-width="1.2" class="group-hover/ogacoutn:scale-125 transition-transform" />
+              <circle r="5.5" fill="#0284c7" stroke="#e0f2fe" stroke-width="1.2" class="group-hover/ogacoutn:scale-125" />
               <text x="0" y="12" text-anchor="middle" font-size="5" font-weight="bold" fill="#0284c7">LOAD N</text>
             </g>
             <g
@@ -1471,7 +1576,7 @@
               tabindex="0"
             >
               <circle r="14" fill="transparent" />
-              <circle r="5.5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/ogacoutpe:scale-125 transition-transform" />
+              <circle r="5.5" fill="#16a34a" stroke="#bbf7d0" stroke-width="1.2" class="group-hover/ogacoutpe:scale-125" />
               <text x="0" y="12" text-anchor="middle" font-size="5" font-weight="bold" fill="#16a34a">PE</text>
             </g>
 
@@ -1492,7 +1597,7 @@
               fill="#ffffff"
               stroke={isSelected ? '#2563eb' : '#94a3b8'}
               stroke-width={isSelected ? 3 : 1.5}
-              class="filter drop-shadow-md hover:stroke-amber-400 transition-colors"
+              class="hover:stroke-amber-400"
             />
             <rect x="0" y="0" width={w} height="4" rx="2" fill="#f59e0b" />
             <rect x={w / 2 - 25} y={isTop ? 27 : 7} width="50" height="9" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="0.6" />
@@ -1529,9 +1634,9 @@
             >
               <circle r="14" fill="transparent" />
               <title>Terminal 1 (L / Line 1)</title>
-              <circle r="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" class="transition-all group-hover/term1:stroke-blue-500 group-hover/term1:scale-125" />
+              <circle r="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" class="group-hover/term1:stroke-blue-500 group-hover/term1:scale-125" />
               <line x1="-3" y1="-2" x2="3" y2="2" stroke="#475569" stroke-width="1.5" />
-              <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term1:opacity-100 transition-opacity" />
+              <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term1:opacity-100" />
               <text x="0" y={isTop ? -9 : 14} text-anchor="middle" font-size="5.5" font-weight="bold" fill="#2563eb">1 (L)</text>
             </g>
 
@@ -1547,9 +1652,9 @@
             >
               <circle r="14" fill="transparent" />
               <title>Terminal 2 (N / Line 2)</title>
-              <circle r="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" class="transition-all group-hover/term2:stroke-blue-500 group-hover/term2:scale-125" />
+              <circle r="6" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" class="group-hover/term2:stroke-blue-500 group-hover/term2:scale-125" />
               <line x1="-3" y1="-2" x2="3" y2="2" stroke="#475569" stroke-width="1.5" />
-              <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term2:opacity-100 transition-opacity" />
+              <circle r="4" fill="#3b82f6" class="opacity-0 group-hover/term2:opacity-100" />
               <text x="0" y={isTop ? -9 : 14} text-anchor="middle" font-size="5.5" font-weight="bold" fill="#dc2626">2 (N)</text>
             </g>
           {/if}
@@ -1557,7 +1662,7 @@
       {/each}
 
       <!-- ROUTED WIRES -->
-      {#each panelStore.wires as wire}
+      {#each panelStore.wires as wire (wire.id)}
         {@const src = getTerminalCoords(wire.sourceDeviceId, wire.sourceTerminalId)}
         {@const tgt = getTerminalCoords(wire.targetDeviceId, wire.targetTerminalId)}
         {#if src && tgt}
@@ -1570,8 +1675,9 @@
             class="wire-group cursor-pointer group"
             pointer-events={panelStore.wireDraft || panelStore.activeTool === 'wire' ? 'none' : 'auto'}
             onmousedown={(e) => {
-              if (e.button !== 0 || !svgElement) return;
-              const rect = svgElement.getBoundingClientRect();
+              if (e.button !== 0) return;
+              const rect = getSvgRect();
+              if (!rect) return;
               const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
               const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
               if (Math.hypot(rawX - src.x, rawY - src.y) <= 15) {
@@ -1585,8 +1691,8 @@
             }}
             onclick={(e) => {
               e.stopPropagation();
-              if (svgElement) {
-                const rect = svgElement.getBoundingClientRect();
+              const rect = getSvgRect();
+              if (rect) {
                 const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
                 const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
                 if (
@@ -1610,7 +1716,7 @@
               stroke-width={gauge.renderWidth + 8}
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="group-hover:stroke-blue-400/50 transition-all"
+              class="group-hover:stroke-blue-400/50"
             />
 
             <!-- High-Contrast Cable Sheath Casing (makes black L1/Hot wires stand out crisply in dark mode) -->
@@ -1632,7 +1738,6 @@
               stroke-width={gauge.renderWidth}
               stroke-linecap="round"
               stroke-linejoin="round"
-              class="filter drop-shadow"
             />
 
             <!-- Cylindrical Insulation Specular Sheen for Black / Dark Conductors -->
@@ -1686,7 +1791,7 @@
                     fill="#ffffff"
                     stroke="#2563eb"
                     stroke-width="2.5"
-                    class="hover:scale-125 filter drop-shadow transition-transform"
+                    class="hover:scale-125"
                   />
                   <circle r="2.5" fill="#3b82f6" />
                 </g>

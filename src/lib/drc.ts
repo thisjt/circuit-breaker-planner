@@ -8,11 +8,16 @@ export function runDesignRuleCheck(
   wires: WireConnection[]
 ): DRCWarning[] {
   const warnings: DRCWarning[] = [];
+  const deviceMap = new Map<string, PlacedDevice>(devices.map((d) => [d.id, d]));
 
   // 1. Check rail capacity
   for (let r = 0; r < config.rows; r++) {
-    const railDevices = devices.filter((d) => d.railIndex === r);
-    const totalModules = railDevices.reduce((sum, d) => sum + d.widthModules, 0);
+    let totalModules = 0;
+    for (const d of devices) {
+      if (d.railIndex === r && (!d.panelId || d.panelId === config.id)) {
+        totalModules += d.widthModules;
+      }
+    }
     if (totalModules > config.slotsPerRow) {
       warnings.push({
         id: `rail-overflow-${r}`,
@@ -26,8 +31,8 @@ export function runDesignRuleCheck(
   // 2. Wire gauge vs breaker ampacity check
   for (const wire of wires) {
     const gauge = getGaugeDef(wire.gaugeMetric);
-    const sourceDev = devices.find((d) => d.id === wire.sourceDeviceId);
-    const targetDev = devices.find((d) => d.id === wire.targetDeviceId);
+    const sourceDev = deviceMap.get(wire.sourceDeviceId);
+    const targetDev = deviceMap.get(wire.targetDeviceId);
 
     // If connected to a breaker output terminal
     const checkBreakerAmpacity = (dev: PlacedDevice | undefined, terminalId: string) => {
@@ -91,7 +96,7 @@ export function runDesignRuleCheck(
   for (const [key, wireIds] of terminalUsageMap.entries()) {
     if (wireIds.length > 2 && !key.startsWith('PE_BAR') && !key.startsWith('N_BAR')) {
       const [devId, termId] = key.split(':');
-      const dev = devices.find((d) => d.id === devId);
+      const dev = deviceMap.get(devId);
       warnings.push({
         id: `term-overload-${key}`,
         level: 'warning',
