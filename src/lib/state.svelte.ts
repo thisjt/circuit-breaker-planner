@@ -758,6 +758,162 @@ export class PanelState {
     this.saveToLocalStorage();
   }
 
+  // Calculate terminal coordinates for free equipment
+  getEquipmentTerminalCoords(
+    eq: FreeEquipment,
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
+    const w = eq.width || 100;
+    const h = eq.height || 100;
+    const isTop = (eq.terminalPosition || 'top') !== 'bottom';
+
+    switch (eq.type) {
+      case 'solar_panel': {
+        const termY = isTop ? eq.y + 16 : eq.y + h - 16;
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'PV+' || terminalId === '1' || terminalId === 'DC+') {
+          return { x: eq.x + 30, y: termY, position: pos };
+        }
+        return { x: eq.x + w - 30, y: termY, position: pos };
+      }
+
+      case 'battery': {
+        const termY = isTop ? eq.y + 16 : eq.y + h - 16;
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'BAT+' || terminalId === 'B+' || terminalId === '1') {
+          return { x: eq.x + 32, y: termY, position: pos };
+        }
+        return { x: eq.x + w - 32, y: termY, position: pos };
+      }
+
+      case 'mccb': {
+        if (terminalId.includes('IN') || terminalId === '1' || terminalId === '3') {
+          const xOffset = terminalId === 'L1_IN' || terminalId === '1' ? 28 : w - 28;
+          return { x: eq.x + xOffset, y: eq.y + 14, position: 'top' };
+        } else {
+          const xOffset = terminalId === 'L1_OUT' || terminalId === '2' ? 28 : w - 28;
+          return { x: eq.x + xOffset, y: eq.y + h - 14, position: 'bottom' };
+        }
+      }
+
+      case 'hybrid_inverter': {
+        if (terminalId === 'PV1+' || terminalId === 'PV+' || terminalId === 'DC+') {
+          return { x: eq.x + 28, y: eq.y + 16, position: 'top' };
+        }
+        if (terminalId === 'PV1-' || terminalId === 'PV-' || terminalId === 'DC-') {
+          return { x: eq.x + 56, y: eq.y + 16, position: 'top' };
+        }
+        if (terminalId === 'BAT+' || terminalId === 'B+') {
+          return { x: eq.x + w - 56, y: eq.y + 16, position: 'top' };
+        }
+        if (terminalId === 'BAT-' || terminalId === 'B-') {
+          return { x: eq.x + w - 26, y: eq.y + 16, position: 'top' };
+        }
+
+        if (terminalId === 'AC_IN_L') return { x: eq.x + 26, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_PE') return { x: eq.x + 74, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + w - 74, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + w - 26, y: eq.y + h - 16, position: 'bottom' };
+
+        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
+      }
+
+      case 'offgrid_inverter': {
+        if (terminalId === 'PV+' || terminalId === 'DC+') return { x: eq.x + 32, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'PV-' || terminalId === 'DC-') return { x: eq.x + 60, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'BAT+' || terminalId === 'B+') return { x: eq.x + w - 60, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'BAT-' || terminalId === 'B-') return { x: eq.x + w - 32, y: eq.y + 16, position: 'top' };
+
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + 36, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + 72, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + 108, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_L') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + w - 24, y: eq.y + h - 16, position: 'bottom' };
+
+        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
+      }
+
+      case 'field_block':
+      default: {
+        const termY = isTop ? eq.y + 14 : eq.y + h - 14;
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        const termX = terminalId === '1' || terminalId === 'L' ? eq.x + 24 : eq.x + w - 24;
+        return { x: termX, y: termY, position: pos };
+      }
+    }
+  }
+
+  // Calculate terminal absolute canvas coordinates
+  getTerminalCoords(
+    deviceId: string,
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
+    const MODULE_WIDTH_PX = 44;
+    const DEVICE_HEIGHT_PX = 160;
+    const PADDING_X = 60;
+    const PADDING_Y = 120;
+
+    // PE Busbars
+    if (deviceId.startsWith('PE_BAR')) {
+      const panelId = deviceId.includes(':')
+        ? deviceId.split(':')[0].replace('PE_BAR_', '')
+        : deviceId.replace('PE_BAR_', '');
+      const panel = this.panels.find((p) => p.id === panelId) || this.panels[0];
+      const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
+      const index = parseInt(terminalId.replace('G_', '')) || 1;
+      const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.groundBarSlots);
+      const y = panel.y + PADDING_Y - 40;
+      return { x, y, position: 'top' };
+    }
+
+    // Neutral Busbars
+    if (deviceId.startsWith('N_BAR')) {
+      const panelId = deviceId.includes(':')
+        ? deviceId.split(':')[0].replace('N_BAR_', '')
+        : deviceId.replace('N_BAR_', '');
+      const panel = this.panels.find((p) => p.id === panelId) || this.panels[0];
+      const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
+      const railSpacing = panel.railSpacing || 230;
+      const panelTotalHeight = panel.rows * railSpacing + PADDING_Y * 2;
+      const index = parseInt(terminalId.replace('N_', '')) || 1;
+      const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.neutralBarSlots);
+      const y = panel.y + panelTotalHeight - PADDING_Y + 44;
+      return { x, y, position: 'bottom' };
+    }
+
+    // Free Equipment
+    const eq = this.equipment.find((e) => e.id === deviceId);
+    if (eq) {
+      return this.getEquipmentTerminalCoords(eq, terminalId);
+    }
+
+    // DIN-rail modular device
+    const device = this.devices.find((d) => d.id === deviceId);
+    if (!device) return null;
+    const def = getDeviceDef(device.typeId);
+    if (!def) return null;
+
+    const term = def.terminals.find((t) => t.id === terminalId);
+    if (!term) return null;
+
+    const panel = (device.panelId ? this.panels.find((p) => p.id === device.panelId) : undefined) || this.activePanel;
+    const railSpacing = panel.railSpacing || 230;
+    const railY = panel.y + PADDING_Y + device.railIndex * railSpacing;
+    const devX = panel.x + PADDING_X + device.slotIndex * MODULE_WIDTH_PX;
+    const termX = devX + term.slotOffset * MODULE_WIDTH_PX;
+    const termY =
+      railY +
+      (term.yOffset !== undefined
+        ? term.yOffset
+        : term.position === 'top'
+          ? 12
+          : DEVICE_HEIGHT_PX - 14);
+
+    return { x: termX, y: termY, position: term.position };
+  }
+
   // Waypoints / Node Routing Management
   addWireWaypoint(wireId: string, point: WirePoint, index?: number) {
     const wire = this.wires.find((w) => w.id === wireId);
@@ -771,6 +927,193 @@ export class PanelState {
       wire.waypoints.push(roundedPoint);
     }
     this.saveToLocalStorage();
+  }
+
+  // Add a waypoint node directly on the existing wire path without jumping
+  addNodeOnWire(wireId: string, targetPoint?: WirePoint) {
+    const wire = this.wires.find((w) => w.id === wireId);
+    if (!wire) return;
+
+    const src = this.getTerminalCoords(wire.sourceDeviceId, wire.sourceTerminalId);
+    const tgt = this.getTerminalCoords(wire.targetDeviceId, wire.targetTerminalId);
+    if (!src || !tgt) {
+      if (targetPoint) {
+        this.addWireWaypoint(wireId, targetPoint);
+      }
+      return;
+    }
+
+    const x1 = src.x;
+    const y1 = src.y;
+    const x2 = tgt.x;
+    const y2 = tgt.y;
+    const waypoints = wire.waypoints || [];
+    const mode = wire.routingMode || 'orthogonal';
+
+    const projectToSegment = (
+      px: number,
+      py: number,
+      ax: number,
+      ay: number,
+      bx: number,
+      by: number
+    ) => {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const lenSq = dx * dx + dy * dy;
+      if (lenSq === 0) {
+        return { x: ax, y: ay, dist: Math.hypot(px - ax, py - ay) };
+      }
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+      const projX = ax + t * dx;
+      const projY = ay + t * dy;
+      return { x: projX, y: projY, dist: Math.hypot(px - projX, py - projY) };
+    };
+
+    if (mode === 'curved') {
+      if (waypoints.length === 0) {
+        if (targetPoint) {
+          this.addWireWaypoint(wireId, targetPoint, 0);
+          return;
+        }
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const dist = Math.hypot(dx, dy);
+        const sag = Math.min(Math.max(dist * 0.25, 25), 100);
+        const cy1 = y1 > y2 ? y1 - sag : y1 + sag;
+        const cy2 = y2 > y1 ? y2 - sag : y2 + sag;
+        const midX = 0.5 * (x1 + x2);
+        const midY = 0.125 * y1 + 0.375 * cy1 + 0.375 * cy2 + 0.125 * y2;
+        this.addWireWaypoint(wireId, { x: midX, y: midY }, 0);
+        return;
+      }
+
+      const pts = [{ x: x1, y: y1 }, ...waypoints, { x: x2, y: y2 }];
+      if (targetPoint) {
+        let bestIdx = 0;
+        let minDist = Infinity;
+        let bestProj: WirePoint = targetPoint;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const proj = projectToSegment(
+            targetPoint.x,
+            targetPoint.y,
+            pts[i].x,
+            pts[i].y,
+            pts[i + 1].x,
+            pts[i + 1].y
+          );
+          if (proj.dist < minDist) {
+            minDist = proj.dist;
+            bestIdx = i;
+            bestProj = { x: proj.x, y: proj.y };
+          }
+        }
+        this.addWireWaypoint(wireId, bestProj, bestIdx);
+        return;
+      }
+
+      let bestIdx = 0;
+      let maxLen = -1;
+      let bestMid: WirePoint = { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+      for (let i = 0; i < pts.length - 1; i++) {
+        const len = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+        if (len >= maxLen) {
+          maxLen = len;
+          bestIdx = i;
+          bestMid = {
+            x: (pts[i].x + pts[i + 1].x) / 2,
+            y: (pts[i].y + pts[i + 1].y) / 2
+          };
+        }
+      }
+      this.addWireWaypoint(wireId, bestMid, bestIdx);
+      return;
+    }
+
+    // ORTHOGONAL MODE
+    if (waypoints.length === 0) {
+      let horizontalY: number;
+      if (src.position === 'top' && tgt.position === 'top' && Math.abs(y1 - y2) < 30) {
+        horizontalY = Math.min(y1, y2) - 30;
+      } else if (src.position === 'bottom' && tgt.position === 'bottom' && Math.abs(y1 - y2) < 30) {
+        horizontalY = Math.max(y1, y2) + 30;
+      } else {
+        horizontalY = Math.round((y1 + y2) / 2);
+      }
+
+      if (targetPoint) {
+        if (x1 === x2) {
+          const minY = Math.min(y1, y2);
+          const maxY = Math.max(y1, y2);
+          const clampedY = Math.max(minY, Math.min(maxY, targetPoint.y));
+          this.addWireWaypoint(wireId, { x: x1, y: clampedY }, 0);
+        } else {
+          const minX = Math.min(x1, x2);
+          const maxX = Math.max(x1, x2);
+          const clampedX = Math.max(minX, Math.min(maxX, targetPoint.x));
+          this.addWireWaypoint(wireId, { x: clampedX, y: horizontalY }, 0);
+        }
+        return;
+      }
+
+      this.addWireWaypoint(wireId, { x: Math.round((x1 + x2) / 2), y: horizontalY }, 0);
+      return;
+    }
+
+    // Orthogonal mode with existing waypoints: build path-preserving segments
+    const allPoints = [{ x: x1, y: y1 }, ...waypoints, { x: x2, y: y2 }];
+    const segments: { ax: number; ay: number; bx: number; by: number; insertIndex: number }[] = [];
+
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const cur = allPoints[i];
+      const nxt = allPoints[i + 1];
+
+      if (i === 0) {
+        if (cur.x === nxt.x) {
+          segments.push({ ax: cur.x, ay: cur.y, bx: nxt.x, by: nxt.y, insertIndex: 0 });
+        } else {
+          segments.push({ ax: cur.x, ay: nxt.y, bx: nxt.x, by: nxt.y, insertIndex: 0 });
+        }
+      } else {
+        segments.push({ ax: cur.x, ay: cur.y, bx: nxt.x, by: cur.y, insertIndex: i });
+        segments.push({ ax: nxt.x, ay: cur.y, bx: nxt.x, by: nxt.y, insertIndex: i });
+      }
+    }
+
+    if (targetPoint) {
+      let bestIdx = waypoints.length;
+      let minDist = Infinity;
+      let bestProj: WirePoint = targetPoint;
+
+      for (const seg of segments) {
+        const proj = projectToSegment(targetPoint.x, targetPoint.y, seg.ax, seg.ay, seg.bx, seg.by);
+        if (proj.dist < minDist) {
+          minDist = proj.dist;
+          bestIdx = seg.insertIndex;
+          bestProj = { x: proj.x, y: proj.y };
+        }
+      }
+      this.addWireWaypoint(wireId, bestProj, bestIdx);
+      return;
+    }
+
+    let bestIdx = waypoints.length;
+    let maxLen = -1;
+    let bestMid: WirePoint = { x: Math.round((x1 + x2) / 2), y: Math.round((y1 + y2) / 2) };
+
+    for (const seg of segments) {
+      const len = Math.hypot(seg.bx - seg.ax, seg.by - seg.ay);
+      if (len >= maxLen) {
+        maxLen = len;
+        bestIdx = seg.insertIndex;
+        bestMid = {
+          x: Math.round((seg.ax + seg.bx) / 2),
+          y: Math.round((seg.ay + seg.by) / 2)
+        };
+      }
+    }
+
+    this.addWireWaypoint(wireId, bestMid, bestIdx);
   }
 
   updateWireWaypoint(wireId: string, nodeIndex: number, newPoint: WirePoint) {

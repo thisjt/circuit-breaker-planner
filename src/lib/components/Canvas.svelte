@@ -549,7 +549,7 @@
     if (!rect) return;
     const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
     const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
-    panelStore.addWireWaypoint(wireId, { x: rawX, y: rawY });
+    panelStore.addNodeOnWire(wireId, { x: rawX, y: rawY });
   }
 
   // Dragging intermediate waypoint node

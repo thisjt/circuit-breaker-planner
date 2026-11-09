@@ -89,15 +89,7 @@
 
   function handleAddNodeToWire() {
     if (!selectedWire) return;
-    const wpList = selectedWire.waypoints || [];
-    let newX = 250;
-    let newY = 220;
-    if (wpList.length > 0) {
-      const last = wpList[wpList.length - 1];
-      newX = last.x + 40;
-      newY = last.y + 40;
-    }
-    panelStore.addWireWaypoint(selectedWire.id, { x: newX, y: newY });
+    panelStore.addNodeOnWire(selectedWire.id);
   }
 
   function syncSolarPower() {
