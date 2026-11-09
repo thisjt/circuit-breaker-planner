@@ -13,17 +13,8 @@
     Printer,
     Download,
     Upload,
-    Sparkles,
     Trash2,
-    ArrowUpDown,
-    Minus,
     Plus,
-    ExternalLink,
-    Sun,
-    Battery,
-    Zap,
-    ShieldAlert,
-    Cpu,
     PanelLeftClose,
     PanelLeftOpen,
     PanelRightClose,
@@ -172,53 +163,9 @@
         </button>
       </div>
     </div>
-
-    <!-- Presets Quick Dropdown -->
-    <select
-      class="bg-slate-800 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 outline-none hover:border-slate-600 transition"
-      onchange={(e) =>
-        panelStore.applyPreset((e.target as HTMLSelectElement).value)}
-      value="{panelStore.activePanel.rows}-Row {panelStore.activePanel.rows *
-        panelStore.activePanel.slotsPerRow}M"
-      title="Apply enclosure sizing preset to current panel"
-    >
-      <option value="1-Row 12M">1-Row (12M)</option>
-      <option value="2-Row 24M">2-Row (24M)</option>
-      <option value="3-Row 36M">3-Row (36M)</option>
-      <option value="2-Row 36M">2-Row (36M / 18 per row)</option>
-      <option value="4-Row 48M">4-Row (48M)</option>
-    </select>
-
-    <!-- Rail Spacing Quick Adjuster -->
-    <div
-      class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 shadow-sm"
-      title="Distance between DIN rails: Pitch {panelStore.activePanel.railSpacing || 230}px"
-    >
-      <ArrowUpDown class="w-3.5 h-3.5 text-blue-400" />
-      <span class="text-[11px] text-slate-400 font-medium">Rails:</span>
-      <button
-        class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition font-bold"
-        onclick={() => panelStore.adjustRailSpacing(-10)}
-        title="Decrease distance between rails (-10px)"
-      >
-        <Minus class="w-3 h-3" />
-      </button>
-      <span
-        class="font-mono text-blue-400 font-semibold px-0.5 text-center min-w-[38px]"
-      >
-        {panelStore.activePanel.railSpacing || 230}px
-      </span>
-      <button
-        class="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 rounded transition font-bold"
-        onclick={() => panelStore.adjustRailSpacing(10)}
-        title="Increase distance between rails (+10px)"
-      >
-        <Plus class="w-3 h-3" />
-      </button>
-    </div>
   </div>
 
-  <!-- Center: Primary Tools & Free Equipment -->
+  <!-- Center: Primary Tools -->
   <div
     class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 flex-shrink-0"
   >
@@ -263,63 +210,6 @@
     >
       <Layers class="w-3.5 h-3.5" />
       <span>Busbar</span>
-    </button>
-
-    <div class="w-px h-5 bg-slate-800 mx-0.5"></div>
-
-    <!-- Quick Add Free Equipment Buttons -->
-    <button
-      class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-amber-300 transition text-xs font-medium border border-amber-600/40"
-      onclick={() => panelStore.addSolarPanel()}
-      title="Add Solar Photovoltaic Module (Free-place, authorable Power, Voltage, Current)"
-    >
-      <Sun class="w-3.5 h-3.5" />
-      <span>+ Solar</span>
-    </button>
-
-    <button
-      class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-emerald-300 transition text-xs font-medium border border-emerald-600/40"
-      onclick={() => panelStore.addBattery()}
-      title="Add Energy Storage Battery (Free-place, authorable Voltage, Ah, autocalculate Wh)"
-    >
-      <Battery class="w-3.5 h-3.5" />
-      <span>+ Battery</span>
-    </button>
-
-    <button
-      class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-orange-300 transition text-xs font-medium border border-orange-600/40"
-      onclick={() => panelStore.addMCCB()}
-      title="Add Industrial Molded Case Circuit Breaker (Free-place, authorable current)"
-    >
-      <ShieldAlert class="w-3.5 h-3.5" />
-      <span>+ MCCB</span>
-    </button>
-
-    <button
-      class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-blue-300 transition text-xs font-medium border border-blue-600/40"
-      onclick={() => panelStore.addHybridInverter()}
-      title="Add Hybrid Inverter (AC In, AC Out, kW capacity, Battery In/Out)"
-    >
-      <Zap class="w-3.5 h-3.5" />
-      <span>+ Hybrid Inv</span>
-    </button>
-
-    <button
-      class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-cyan-300 transition text-xs font-medium border border-cyan-600/40"
-      onclick={() => panelStore.addOffgridInverter()}
-      title="Add Off-Grid Inverter (AC Out, kW capacity, Battery In/Out)"
-    >
-      <Cpu class="w-3.5 h-3.5" />
-      <span>+ Offgrid Inv</span>
-    </button>
-
-    <button
-      class="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 text-slate-300 transition text-xs font-medium border border-slate-700"
-      onclick={() => panelStore.addFieldBlock()}
-      title="Add Detached Field Connection Block"
-    >
-      <ExternalLink class="w-3.5 h-3.5 text-amber-400" />
-      <span>+ Field Block</span>
     </button>
   </div>
 

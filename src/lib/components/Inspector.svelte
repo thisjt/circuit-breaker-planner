@@ -1135,27 +1135,45 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-slate-400 mb-1">DIN Rail Rows (Tiers)</label>
-          <input
-            type="number"
-            min="1"
-            max="6"
-            bind:value={activeP.rows}
-            onchange={() => panelStore.saveToLocalStorage()}
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none font-mono"
-          />
+          <label class="block font-semibold text-slate-400 mb-1">Enclosure Size Preset</label>
+          <select
+            class="w-full bg-slate-950 text-xs text-slate-200 border border-slate-800 rounded-lg p-2 outline-none focus:border-blue-500 transition"
+            onchange={(e) =>
+              panelStore.applyPreset((e.target as HTMLSelectElement).value)}
+            value="{activeP.rows}-Row {activeP.rows * activeP.slotsPerRow}M"
+          >
+            <option value="1-Row 12M">1-Row (12M)</option>
+            <option value="2-Row 24M">2-Row (24M)</option>
+            <option value="3-Row 36M">3-Row (36M)</option>
+            <option value="2-Row 36M">2-Row (36M / 18 per row)</option>
+            <option value="4-Row 48M">4-Row (48M)</option>
+          </select>
         </div>
 
-        <div>
-          <label class="block font-semibold text-slate-400 mb-1">Modules per Rail (Slots / Row)</label>
-          <input
-            type="number"
-            min="4"
-            max="36"
-            bind:value={activeP.slotsPerRow}
-            onchange={() => panelStore.saveToLocalStorage()}
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none font-mono"
-          />
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">DIN Rail Rows</label>
+            <input
+              type="number"
+              min="1"
+              max="6"
+              bind:value={activeP.rows}
+              onchange={() => panelStore.saveToLocalStorage()}
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none font-mono"
+            />
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Slots / Row</label>
+            <input
+              type="number"
+              min="4"
+              max="36"
+              bind:value={activeP.slotsPerRow}
+              onchange={() => panelStore.saveToLocalStorage()}
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-slate-100 outline-none font-mono"
+            />
+          </div>
         </div>
 
         <!-- Rail Spacing -->
