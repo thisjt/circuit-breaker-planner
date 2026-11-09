@@ -1,13 +1,14 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { verifyPassphrase } from '#lib/server/auth';
+import { getPlansBucket } from '#lib/server/bucket';
 
 function sanitizeId(rawId: string): string {
   return rawId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
 }
 
 export const POST: RequestHandler = async ({ params, request, platform }) => {
-  const bucket = platform?.env?.PLANS_BUCKET;
+  const bucket = getPlansBucket(platform);
   if (!bucket) {
     throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
   }
@@ -51,4 +52,3 @@ export const POST: RequestHandler = async ({ params, request, platform }) => {
     editToken: meta.editToken || ''
   });
 };
-

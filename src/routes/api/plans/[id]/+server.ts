@@ -1,13 +1,14 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { generateEditToken, hashPassphrase, verifyPassphrase } from '#lib/server/auth';
+import { getPlansBucket } from '#lib/server/bucket';
 
 function sanitizeId(rawId: string): string {
   return rawId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
 }
 
 export const GET: RequestHandler = async ({ params, request, platform }) => {
-  const bucket = platform?.env?.PLANS_BUCKET;
+  const bucket = getPlansBucket(platform);
   if (!bucket) {
     throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
   }
@@ -47,7 +48,7 @@ export const GET: RequestHandler = async ({ params, request, platform }) => {
 };
 
 export const PUT: RequestHandler = async ({ params, request, platform }) => {
-  const bucket = platform?.env?.PLANS_BUCKET;
+  const bucket = getPlansBucket(platform);
   if (!bucket) {
     throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
   }
@@ -74,7 +75,6 @@ export const PUT: RequestHandler = async ({ params, request, platform }) => {
 
   let isAuthorized = false;
   if (!existingMeta.editToken) {
-    // Legacy plan without editToken -> allow initial claim
     isAuthorized = true;
   } else if (clientToken && clientToken === existingMeta.editToken) {
     isAuthorized = true;
@@ -122,7 +122,6 @@ export const PUT: RequestHandler = async ({ params, request, platform }) => {
     editToken
   };
 
-  // Check if passphrase was updated or removed
   if (body.removePassphrase === true) {
     customMetadata.hasPassphrase = 'false';
     delete customMetadata.passphraseHash;
@@ -165,7 +164,7 @@ export const PUT: RequestHandler = async ({ params, request, platform }) => {
 };
 
 export const DELETE: RequestHandler = async ({ params, request, platform }) => {
-  const bucket = platform?.env?.PLANS_BUCKET;
+  const bucket = getPlansBucket(platform);
   if (!bucket) {
     throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
   }

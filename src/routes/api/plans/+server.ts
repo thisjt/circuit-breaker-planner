@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { CloudPlanSummary } from '#lib/types';
 import { generateEditToken, hashPassphrase } from '#lib/server/auth';
+import { getPlansBucket } from '#lib/server/bucket';
 
 function generateShortId(length = 8): string {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -15,7 +16,7 @@ function generateShortId(length = 8): string {
 }
 
 export const GET: RequestHandler = async ({ platform }) => {
-  const bucket = platform?.env?.PLANS_BUCKET;
+  const bucket = getPlansBucket(platform);
   if (!bucket) {
     throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
   }
@@ -48,7 +49,7 @@ export const GET: RequestHandler = async ({ platform }) => {
 };
 
 export const POST: RequestHandler = async ({ request, platform }) => {
-  const bucket = platform?.env?.PLANS_BUCKET;
+  const bucket = getPlansBucket(platform);
   if (!bucket) {
     throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
   }
