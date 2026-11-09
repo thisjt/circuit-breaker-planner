@@ -1,21 +1,10 @@
 <script lang="ts">
-  import { panelStore } from "#lib/state.svelte";
-  import { getDeviceDef } from "#lib/catalog";
-  import {
-    getGaugeDef,
-    getWireColor,
-    isDarkWireColor,
-  } from "#lib/wireStandards";
-  import type {
-    CombBusbar,
-    FreeEquipment,
-    PanelConfig,
-    PlacedDevice,
-    WirePoint,
-    WireRole,
-  } from "#lib/types";
-  import DeviceItem from "./DeviceItem.svelte";
-  import EquipmentItem from "./EquipmentItem.svelte";
+  import { panelStore } from '#lib/state.svelte';
+  import { getDeviceDef } from '#lib/catalog';
+  import { getGaugeDef, getWireColor, isDarkWireColor } from '#lib/wireStandards';
+  import type { CombBusbar, FreeEquipment, PanelConfig, PlacedDevice, WirePoint, WireRole } from '#lib/types';
+  import DeviceItem from './DeviceItem.svelte';
+  import EquipmentItem from './EquipmentItem.svelte';
 
   const MODULE_WIDTH_PX = 44;
   const DEVICE_HEIGHT_PX = 160;
@@ -35,9 +24,7 @@
   let dragHoverSlot = $state<number | null>(null);
 
   // Dragging waypoint state
-  let draggingWaypoint = $state<{ wireId: string; nodeIndex: number } | null>(
-    null,
-  );
+  let draggingWaypoint = $state<{ wireId: string; nodeIndex: number } | null>(null);
 
   // Dragging equipment state (Solar, Battery, MCCB, Inverters, Field Block)
   let draggingEquipmentId = $state<string | null>(null);
@@ -48,19 +35,13 @@
   let panelDragOffset = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // O(1) Lookup Maps & Grouped Collections for Fast Rendering
-  const panelMap = $derived(
-    new Map<string, PanelConfig>(panelStore.panels.map((p) => [p.id, p])),
-  );
-  const deviceMap = $derived(
-    new Map<string, PlacedDevice>(panelStore.devices.map((d) => [d.id, d])),
-  );
-  const equipmentMap = $derived(
-    new Map<string, FreeEquipment>(panelStore.equipment.map((e) => [e.id, e])),
-  );
+  const panelMap = $derived(new Map<string, PanelConfig>(panelStore.panels.map((p) => [p.id, p])));
+  const deviceMap = $derived(new Map<string, PlacedDevice>(panelStore.devices.map((d) => [d.id, d])));
+  const equipmentMap = $derived(new Map<string, FreeEquipment>(panelStore.equipment.map((e) => [e.id, e])));
 
   const devicesByPanel = $derived.by(() => {
     const map = new Map<string, PlacedDevice[]>();
-    const defaultPanelId = panelStore.panels[0]?.id || "panel-1";
+    const defaultPanelId = panelStore.panels[0]?.id || 'panel-1';
     for (const p of panelStore.panels) {
       map.set(p.id, []);
     }
@@ -78,7 +59,7 @@
 
   const busbarsByPanel = $derived.by(() => {
     const map = new Map<string, CombBusbar[]>();
-    const defaultPanelId = panelStore.panels[0]?.id || "panel-1";
+    const defaultPanelId = panelStore.panels[0]?.id || 'panel-1';
     for (const p of panelStore.panels) {
       map.set(p.id, []);
     }
@@ -105,41 +86,34 @@
   // Calculate terminal absolute canvas coordinates in O(1)
   function getTerminalCoords(
     deviceId: string,
-    terminalId: string,
-  ): { x: number; y: number; position: "top" | "bottom" } | null {
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
     // PE Busbars
-    if (deviceId.startsWith("PE_BAR")) {
-      const panelId = deviceId.includes(":")
-        ? deviceId.split(":")[0].replace("PE_BAR_", "")
-        : deviceId.replace("PE_BAR_", "");
+    if (deviceId.startsWith('PE_BAR')) {
+      const panelId = deviceId.includes(':')
+        ? deviceId.split(':')[0].replace('PE_BAR_', '')
+        : deviceId.replace('PE_BAR_', '');
       const panel = panelMap.get(panelId) || panelStore.panels[0];
       const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
-      const index = parseInt(terminalId.replace("G_", "")) || 1;
-      const x =
-        panel.x +
-        PADDING_X +
-        (index - 0.5) * (railWidthPx / panel.groundBarSlots);
+      const index = parseInt(terminalId.replace('G_', '')) || 1;
+      const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.groundBarSlots);
       const y = panel.y + PADDING_Y - 40;
-      return { x, y, position: "top" };
+      return { x, y, position: 'top' };
     }
 
     // Neutral Busbars
-    if (deviceId.startsWith("N_BAR")) {
-      const panelId = deviceId.includes(":")
-        ? deviceId.split(":")[0].replace("N_BAR_", "")
-        : deviceId.replace("N_BAR_", "");
+    if (deviceId.startsWith('N_BAR')) {
+      const panelId = deviceId.includes(':')
+        ? deviceId.split(':')[0].replace('N_BAR_', '')
+        : deviceId.replace('N_BAR_', '');
       const panel = panelMap.get(panelId) || panelStore.panels[0];
       const railWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX;
       const railSpacing = panel.railSpacing || 230;
-      const panelTotalHeight =
-        (panel.rows - 1) * railSpacing + DEVICE_HEIGHT_PX + PADDING_Y * 2;
-      const index = parseInt(terminalId.replace("N_", "")) || 1;
-      const x =
-        panel.x +
-        PADDING_X +
-        (index - 0.5) * (railWidthPx / panel.neutralBarSlots);
+      const panelTotalHeight = (panel.rows - 1) * railSpacing + DEVICE_HEIGHT_PX + PADDING_Y * 2;
+      const index = parseInt(terminalId.replace('N_', '')) || 1;
+      const x = panel.x + PADDING_X + (index - 0.5) * (railWidthPx / panel.neutralBarSlots);
       const y = panel.y + panelTotalHeight - PADDING_Y + 44;
-      return { x, y, position: "bottom" };
+      return { x, y, position: 'bottom' };
     }
 
     // Free Equipment (Solar Panel, Battery, MCCB, Hybrid & Offgrid Inverters, Field Block)
@@ -157,9 +131,7 @@
     const term = def.terminals.find((t) => t.id === terminalId);
     if (!term) return null;
 
-    const panel =
-      (device.panelId ? panelMap.get(device.panelId) : undefined) ||
-      panelStore.activePanel;
+    const panel = (device.panelId ? panelMap.get(device.panelId) : undefined) || panelStore.activePanel;
     const railSpacing = panel.railSpacing || 230;
     const railY = panel.y + PADDING_Y + device.railIndex * railSpacing;
     const devX = panel.x + PADDING_X + device.slotIndex * MODULE_WIDTH_PX;
@@ -168,7 +140,7 @@
       railY +
       (term.yOffset !== undefined
         ? term.yOffset
-        : term.position === "top"
+        : term.position === 'top'
           ? 12
           : DEVICE_HEIGHT_PX - 14);
 
@@ -178,141 +150,103 @@
   // Calculate terminal coordinates for free equipment
   function getEquipmentTerminalCoords(
     eq: FreeEquipment,
-    terminalId: string,
-  ): { x: number; y: number; position: "top" | "bottom" } | null {
+    terminalId: string
+  ): { x: number; y: number; position: 'top' | 'bottom' } | null {
     const w = eq.width || 100;
     const h = eq.height || 100;
-    const isTop = (eq.terminalPosition || "top") !== "bottom";
+    const isTop = (eq.terminalPosition || 'top') !== 'bottom';
 
     switch (eq.type) {
-      case "solar_panel": {
+      case 'solar_panel': {
         const termY = isTop ? eq.y + 16 : eq.y + h - 16;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        if (
-          terminalId === "PV+" ||
-          terminalId === "1" ||
-          terminalId === "DC+"
-        ) {
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'PV+' || terminalId === '1' || terminalId === 'DC+') {
           return { x: eq.x + 30, y: termY, position: pos };
         }
         return { x: eq.x + w - 30, y: termY, position: pos };
       }
 
-      case "battery": {
+      case 'battery': {
         const termY = isTop ? eq.y + 16 : eq.y + h - 16;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        if (
-          terminalId === "BAT+" ||
-          terminalId === "B+" ||
-          terminalId === "1"
-        ) {
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'BAT+' || terminalId === 'B+' || terminalId === '1') {
           return { x: eq.x + 32, y: termY, position: pos };
         }
         return { x: eq.x + w - 32, y: termY, position: pos };
       }
 
-      case "mccb": {
-        if (
-          terminalId.includes("IN") ||
-          terminalId === "1" ||
-          terminalId === "3"
-        ) {
-          const xOffset =
-            terminalId === "L1_IN" || terminalId === "1" ? 28 : w - 28;
-          return { x: eq.x + xOffset, y: eq.y + 14, position: "top" };
+      case 'mccb': {
+        if (terminalId.includes('IN') || terminalId === '1' || terminalId === '3') {
+          const xOffset = terminalId === 'L1_IN' || terminalId === '1' ? 28 : w - 28;
+          return { x: eq.x + xOffset, y: eq.y + 14, position: 'top' };
         } else {
-          const xOffset =
-            terminalId === "L1_OUT" || terminalId === "2" ? 28 : w - 28;
-          return { x: eq.x + xOffset, y: eq.y + h - 14, position: "bottom" };
+          const xOffset = terminalId === 'L1_OUT' || terminalId === '2' ? 28 : w - 28;
+          return { x: eq.x + xOffset, y: eq.y + h - 14, position: 'bottom' };
         }
       }
 
-      case "hybrid_inverter": {
+      case 'hybrid_inverter': {
         // Top row terminals: PV1+, PV1-, BAT+, BAT-
-        if (
-          terminalId === "PV1+" ||
-          terminalId === "PV+" ||
-          terminalId === "DC+"
-        ) {
-          return { x: eq.x + 28, y: eq.y + 16, position: "top" };
+        if (terminalId === 'PV1+' || terminalId === 'PV+' || terminalId === 'DC+') {
+          return { x: eq.x + 28, y: eq.y + 16, position: 'top' };
         }
-        if (
-          terminalId === "PV1-" ||
-          terminalId === "PV-" ||
-          terminalId === "DC-"
-        ) {
-          return { x: eq.x + 56, y: eq.y + 16, position: "top" };
+        if (terminalId === 'PV1-' || terminalId === 'PV-' || terminalId === 'DC-') {
+          return { x: eq.x + 56, y: eq.y + 16, position: 'top' };
         }
-        if (terminalId === "BAT+" || terminalId === "B+") {
-          return { x: eq.x + w - 56, y: eq.y + 16, position: "top" };
+        if (terminalId === 'BAT+' || terminalId === 'B+') {
+          return { x: eq.x + w - 56, y: eq.y + 16, position: 'top' };
         }
-        if (terminalId === "BAT-" || terminalId === "B-") {
-          return { x: eq.x + w - 26, y: eq.y + 16, position: "top" };
+        if (terminalId === 'BAT-' || terminalId === 'B-') {
+          return { x: eq.x + w - 26, y: eq.y + 16, position: 'top' };
         }
 
         // Bottom row terminals: AC_IN (L, N, PE) & AC_OUT (L, N, PE)
-        if (terminalId === "AC_IN_L")
-          return { x: eq.x + 26, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_N")
-          return { x: eq.x + 50, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_PE")
-          return { x: eq.x + 74, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_L")
-          return { x: eq.x + w - 74, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_N")
-          return { x: eq.x + w - 50, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_PE")
-          return { x: eq.x + w - 26, y: eq.y + h - 16, position: "bottom" };
+        if (terminalId === 'AC_IN_L') return { x: eq.x + 26, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_PE') return { x: eq.x + 74, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + w - 74, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + w - 26, y: eq.y + h - 16, position: 'bottom' };
 
-        return { x: eq.x + w / 2, y: eq.y + h - 16, position: "bottom" };
+        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
       }
 
-      case "offgrid_inverter": {
-        if (terminalId === "PV+" || terminalId === "DC+")
-          return { x: eq.x + 32, y: eq.y + 16, position: "top" };
-        if (terminalId === "PV-" || terminalId === "DC-")
-          return { x: eq.x + 60, y: eq.y + 16, position: "top" };
-        if (terminalId === "BAT+" || terminalId === "B+")
-          return { x: eq.x + w - 60, y: eq.y + 16, position: "top" };
-        if (terminalId === "BAT-" || terminalId === "B-")
-          return { x: eq.x + w - 32, y: eq.y + 16, position: "top" };
+      case 'offgrid_inverter': {
+        if (terminalId === 'PV+' || terminalId === 'DC+') return { x: eq.x + 32, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'PV-' || terminalId === 'DC-') return { x: eq.x + 60, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'BAT+' || terminalId === 'B+') return { x: eq.x + w - 60, y: eq.y + 16, position: 'top' };
+        if (terminalId === 'BAT-' || terminalId === 'B-') return { x: eq.x + w - 32, y: eq.y + 16, position: 'top' };
 
-        if (terminalId === "AC_OUT_L")
-          return { x: eq.x + 36, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_N")
-          return { x: eq.x + 72, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_OUT_PE")
-          return { x: eq.x + 108, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_L")
-          return { x: eq.x + w - 50, y: eq.y + h - 16, position: "bottom" };
-        if (terminalId === "AC_IN_N")
-          return { x: eq.x + w - 24, y: eq.y + h - 16, position: "bottom" };
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + 36, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + 72, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + 108, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_L') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + w - 24, y: eq.y + h - 16, position: 'bottom' };
 
-        return { x: eq.x + w / 2, y: eq.y + h - 16, position: "bottom" };
+        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
       }
 
-      case "hvac":
-      case "water_heater":
-      case "refrigerator":
-      case "ev_charger":
-      case "outlet_3gang": {
+      case 'hvac':
+      case 'water_heater':
+      case 'refrigerator':
+      case 'ev_charger':
+      case 'outlet_3gang': {
         const termY = isTop ? eq.y + 14 : eq.y + h - 14;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        if (terminalId === "L" || terminalId === "1" || terminalId === "L1") {
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        if (terminalId === 'L' || terminalId === '1' || terminalId === 'L1') {
           return { x: eq.x + 24, y: termY, position: pos };
         }
-        if (terminalId === "N" || terminalId === "2" || terminalId === "L2") {
+        if (terminalId === 'N' || terminalId === '2' || terminalId === 'L2') {
           return { x: eq.x + w / 2, y: termY, position: pos };
         }
         return { x: eq.x + w - 24, y: termY, position: pos };
       }
 
-      case "field_block":
+      case 'field_block':
       default: {
         const termY = isTop ? eq.y + 14 : eq.y + h - 14;
-        const pos: "top" | "bottom" = isTop ? "top" : "bottom";
-        const termX =
-          terminalId === "1" || terminalId === "L" ? eq.x + 24 : eq.x + w - 24;
+        const pos: 'top' | 'bottom' = isTop ? 'top' : 'bottom';
+        const termX = terminalId === '1' || terminalId === 'L' ? eq.x + 24 : eq.x + w - 24;
         return { x: termX, y: termY, position: pos };
       }
     }
@@ -320,17 +254,17 @@
 
   // Generate SVG wire path with orthogonal right angles and nodes
   function generateWirePath(
-    src: { x: number; y: number; position?: "top" | "bottom" },
-    tgt: { x: number; y: number; position?: "top" | "bottom" },
+    src: { x: number; y: number; position?: 'top' | 'bottom' },
+    tgt: { x: number; y: number; position?: 'top' | 'bottom' },
     waypoints: WirePoint[] = [],
-    mode: "curved" | "orthogonal" = "orthogonal",
+    mode: 'curved' | 'orthogonal' = 'orthogonal'
   ): string {
     const x1 = src.x;
     const y1 = src.y;
     const x2 = tgt.x;
     const y2 = tgt.y;
 
-    if (mode === "curved") {
+    if (mode === 'curved') {
       if (waypoints.length === 0) {
         const dx = x2 - x1;
         const dy = y2 - y1;
@@ -356,18 +290,10 @@
 
     // ORTHOGONAL (RIGHT ANGLE) ROUTING
     if (waypoints.length === 0) {
-      if (
-        src.position === "top" &&
-        tgt.position === "top" &&
-        Math.abs(y1 - y2) < 30
-      ) {
+      if (src.position === 'top' && tgt.position === 'top' && Math.abs(y1 - y2) < 30) {
         const gutterY = Math.min(y1, y2) - 30;
         return `M ${x1} ${y1} L ${x1} ${gutterY} L ${x2} ${gutterY} L ${x2} ${y2}`;
-      } else if (
-        src.position === "bottom" &&
-        tgt.position === "bottom" &&
-        Math.abs(y1 - y2) < 30
-      ) {
+      } else if (src.position === 'bottom' && tgt.position === 'bottom' && Math.abs(y1 - y2) < 30) {
         const gutterY = Math.max(y1, y2) + 30;
         return `M ${x1} ${y1} L ${x1} ${gutterY} L ${x2} ${gutterY} L ${x2} ${y2}`;
       } else {
@@ -407,8 +333,7 @@
     if (
       e.button === 1 ||
       (e.button === 0 && e.altKey) ||
-      (panelStore.activeTool === "select" &&
-        (target.tagName === "svg" || target.id === "canvas-grid-bg"))
+      (panelStore.activeTool === 'select' && (target.tagName === 'svg' || target.id === 'canvas-grid-bg'))
     ) {
       isPanning = true;
       panStartX = e.clientX - panelStore.pan.x;
@@ -447,7 +372,7 @@
       panelStore.updateWireWaypoint(
         draggingWaypoint.wireId,
         draggingWaypoint.nodeIndex,
-        { x: snappedX, y: snappedY },
+        { x: snappedX, y: snappedY }
       );
       return;
     }
@@ -457,7 +382,7 @@
       panelStore.movePanel(
         draggingPanelId,
         rawX - panelDragOffset.x,
-        rawY - panelDragOffset.y,
+        rawY - panelDragOffset.y
       );
       return;
     }
@@ -493,12 +418,7 @@
         const railIdx = Math.floor(relY / pRailSpacing);
         const slotIdx = Math.floor(relX / MODULE_WIDTH_PX);
 
-        if (
-          railIdx >= 0 &&
-          railIdx < panel.rows &&
-          slotIdx >= 0 &&
-          slotIdx < panel.slotsPerRow
-        ) {
+        if (railIdx >= 0 && railIdx < panel.rows && slotIdx >= 0 && slotIdx < panel.slotsPerRow) {
           foundPanelId = panel.id;
           foundRail = railIdx;
           foundSlot = slotIdx;
@@ -527,34 +447,14 @@
     }
 
     // If placing from catalog
-    if (
-      panelStore.pendingPlaceTypeId &&
-      dragHoverRail !== null &&
-      dragHoverSlot !== null &&
-      dragHoverPanelId
-    ) {
-      panelStore.placeDevice(
-        panelStore.pendingPlaceTypeId,
-        dragHoverRail,
-        dragHoverSlot,
-        dragHoverPanelId,
-      );
+    if (panelStore.pendingPlaceTypeId && dragHoverRail !== null && dragHoverSlot !== null && dragHoverPanelId) {
+      panelStore.placeDevice(panelStore.pendingPlaceTypeId, dragHoverRail, dragHoverSlot, dragHoverPanelId);
       panelStore.pendingPlaceTypeId = null;
     }
 
     // If moving existing device
-    if (
-      draggingDeviceId &&
-      dragHoverRail !== null &&
-      dragHoverSlot !== null &&
-      dragHoverPanelId
-    ) {
-      panelStore.moveDevice(
-        draggingDeviceId,
-        dragHoverRail,
-        dragHoverSlot,
-        dragHoverPanelId,
-      );
+    if (draggingDeviceId && dragHoverRail !== null && dragHoverSlot !== null && dragHoverPanelId) {
+      panelStore.moveDevice(draggingDeviceId, dragHoverRail, dragHoverSlot, dragHoverPanelId);
       draggingDeviceId = null;
     }
 
@@ -583,7 +483,7 @@
   function handlePanelHeaderMouseDown(panelId: string, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
-    panelStore.select("panel", panelId);
+    panelStore.select('panel', panelId);
     const p = panelMap.get(panelId);
     const rect = getSvgRect(true);
     if (!p || !rect) return;
@@ -599,7 +499,7 @@
   function handleEquipmentMouseDown(id: string, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
-    panelStore.select("equipment", id);
+    panelStore.select('equipment', id);
     const eq = equipmentMap.get(id);
     const rect = getSvgRect(true);
     if (!eq || !rect) return;
@@ -616,7 +516,7 @@
     deviceId: string,
     terminalId: string,
     e: MouseEvent,
-    suggestedRole?: WireRole,
+    suggestedRole?: WireRole
   ) {
     if (e.button !== 0) return;
     e.stopPropagation();
@@ -636,11 +536,7 @@
   }
 
   // Terminal mouseup handler (supports press-drag-release wiring between two terminals)
-  function handleTerminalMouseUp(
-    deviceId: string,
-    terminalId: string,
-    e: MouseEvent,
-  ) {
+  function handleTerminalMouseUp(deviceId: string, terminalId: string, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
     if (
@@ -656,8 +552,8 @@
   function handleEquipmentTerminalMouseDown(
     eqId: string,
     terminalId: string,
-    suggestedRole: WireRole = "line1",
-    e: MouseEvent,
+    suggestedRole: WireRole = 'line1',
+    e: MouseEvent
   ) {
     handleTerminalMouseDown(eqId, terminalId, e, suggestedRole);
   }
@@ -673,11 +569,7 @@
   }
 
   // Dragging intermediate waypoint node
-  function handleWaypointMouseDown(
-    wireId: string,
-    nodeIndex: number,
-    e: MouseEvent,
-  ) {
+  function handleWaypointMouseDown(wireId: string, nodeIndex: number, e: MouseEvent) {
     if (e.button !== 0) return;
     e.stopPropagation();
     getSvgRect(true);
@@ -718,8 +610,7 @@
         width="100"
         height="100"
         patternUnits="userSpaceOnUse"
-        patternTransform="translate({panelStore.pan.x}, {panelStore.pan
-          .y}) scale({panelStore.zoom})"
+        patternTransform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})"
       >
         <path
           d="M 20 0 V 100 M 40 0 V 100 M 60 0 V 100 M 80 0 V 100 M 0 20 H 100 M 0 40 H 100 M 0 60 H 100 M 0 80 H 100"
@@ -727,12 +618,7 @@
           stroke="#1e293b"
           stroke-width="0.8"
         />
-        <path
-          d="M 100 0 L 0 0 0 100"
-          fill="none"
-          stroke="#334155"
-          stroke-width="1.2"
-        />
+        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#334155" stroke-width="1.2" />
       </pattern>
     </defs>
 
@@ -748,20 +634,14 @@
     />
 
     <!-- Canvas Transform Layer -->
-    <g
-      transform="translate({panelStore.pan.x}, {panelStore.pan
-        .y}) scale({panelStore.zoom})"
-    >
+    <g transform="translate({panelStore.pan.x}, {panelStore.pan.y}) scale({panelStore.zoom})">
       <!-- MULTIPLE BREAKER PANELS -->
       {#each panelStore.panels as panel (panel.id)}
         {@const pRailSpacing = panel.railSpacing || 230}
         {@const pRailWidthPx = panel.slotsPerRow * MODULE_WIDTH_PX}
         {@const pTotalWidth = pRailWidthPx + PADDING_X * 2}
-        {@const pTotalHeight =
-          (panel.rows - 1) * pRailSpacing + DEVICE_HEIGHT_PX + PADDING_Y * 2}
-        {@const isPanelSelected =
-          panelStore.selectedType === "panel" &&
-          panelStore.selectedId === panel.id}
+        {@const pTotalHeight = (panel.rows - 1) * pRailSpacing + DEVICE_HEIGHT_PX + PADDING_Y * 2}
+        {@const isPanelSelected = panelStore.selectedType === 'panel' && panelStore.selectedId === panel.id}
         {@const isActivePanel = panelStore.activePanelId === panel.id}
 
         <g class="panel-enclosure" transform="translate({panel.x}, {panel.y})">
@@ -785,16 +665,12 @@
             height={pTotalHeight - PADDING_Y * 2 + 165}
             rx="14"
             fill="#0f172a"
-            stroke={isPanelSelected
-              ? "#38bdf8"
-              : isActivePanel
-                ? "#3b82f6"
-                : "#475569"}
+            stroke={isPanelSelected ? '#38bdf8' : isActivePanel ? '#3b82f6' : '#475569'}
             stroke-width={isPanelSelected ? 3.5 : isActivePanel ? 2.5 : 2}
             class="cursor-pointer"
             onclick={(e) => {
               e.stopPropagation();
-              panelStore.select("panel", panel.id);
+              panelStore.select('panel', panel.id);
             }}
           />
 
@@ -805,8 +681,8 @@
             width={pRailWidthPx + 50}
             height="32"
             rx="6"
-            fill={isActivePanel ? "#1e293b" : "#0f172a"}
-            stroke={isActivePanel ? "#334155" : "transparent"}
+            fill={isActivePanel ? '#1e293b' : '#0f172a'}
+            stroke={isActivePanel ? '#334155' : 'transparent'}
             stroke-width="1"
             class="cursor-move hover:fill-slate-800"
             onmousedown={(e) => handlePanelHeaderMouseDown(panel.id, e)}
@@ -818,7 +694,7 @@
             y={PADDING_Y - 69}
             font-size="12"
             font-weight="bold"
-            fill={isActivePanel ? "#38bdf8" : "#94a3b8"}
+            fill={isActivePanel ? '#38bdf8' : '#94a3b8'}
             class="font-mono tracking-wider uppercase select-none cursor-move"
             onmousedown={(e) => handlePanelHeaderMouseDown(panel.id, e)}
           >
@@ -832,7 +708,7 @@
             width="65"
             height="16"
             rx="4"
-            fill={isActivePanel ? "#2563eb" : "#334155"}
+            fill={isActivePanel ? '#2563eb' : '#334155'}
           />
           <text
             x={PADDING_X + pRailWidthPx - 22}
@@ -843,15 +719,12 @@
             fill="#ffffff"
             class="font-mono"
           >
-            {isActivePanel ? "ACTIVE" : "SELECT"}
+            {isActivePanel ? 'ACTIVE' : 'SELECT'}
           </text>
 
           <!-- TOP GROUND (PE) BRASS BUSBAR STRIP -->
           {#if panel.hasGroundBar}
-            <g
-              class="ground-bar"
-              transform="translate({PADDING_X}, {PADDING_Y - 48})"
-            >
+            <g class="ground-bar" transform="translate({PADDING_X}, {PADDING_Y - 48})">
               <rect
                 x="0"
                 y="0"
@@ -873,24 +746,12 @@
                 PE BAR
               </text>
               {#each Array(panel.groundBarSlots) as _, idx}
-                {@const holeX =
-                  (idx + 0.5) * (pRailWidthPx / panel.groundBarSlots)}
+                {@const holeX = (idx + 0.5) * (pRailWidthPx / panel.groundBarSlots)}
                 <g
                   class="terminal-pe cursor-pointer group"
                   transform="translate({holeX}, 8)"
-                  onmousedown={(e) =>
-                    handleTerminalMouseDown(
-                      `PE_BAR_${panel.id}`,
-                      `G_${idx + 1}`,
-                      e,
-                      "earth",
-                    )}
-                  onmouseup={(e) =>
-                    handleTerminalMouseUp(
-                      `PE_BAR_${panel.id}`,
-                      `G_${idx + 1}`,
-                      e,
-                    )}
+                  onmousedown={(e) => handleTerminalMouseDown(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e, 'earth')}
+                  onmouseup={(e) => handleTerminalMouseUp(`PE_BAR_${panel.id}`, `G_${idx + 1}`, e)}
                   onclick={(e) => e.stopPropagation()}
                   role="button"
                   tabindex="0"
@@ -911,12 +772,7 @@
 
           <!-- BOTTOM NEUTRAL (N) BRASS BUSBAR STRIP -->
           {#if panel.hasNeutralBar}
-            <g
-              class="neutral-bar"
-              transform="translate({PADDING_X}, {pTotalHeight -
-                PADDING_Y +
-                36})"
-            >
+            <g class="neutral-bar" transform="translate({PADDING_X}, {pTotalHeight - PADDING_Y + 36})">
               <rect
                 x="0"
                 y="0"
@@ -938,24 +794,12 @@
                 N BAR
               </text>
               {#each Array(panel.neutralBarSlots) as _, idx}
-                {@const holeX =
-                  (idx + 0.5) * (pRailWidthPx / panel.neutralBarSlots)}
+                {@const holeX = (idx + 0.5) * (pRailWidthPx / panel.neutralBarSlots)}
                 <g
                   class="terminal-n cursor-pointer group"
                   transform="translate({holeX}, 8)"
-                  onmousedown={(e) =>
-                    handleTerminalMouseDown(
-                      `N_BAR_${panel.id}`,
-                      `N_${idx + 1}`,
-                      e,
-                      "neutral",
-                    )}
-                  onmouseup={(e) =>
-                    handleTerminalMouseUp(
-                      `N_BAR_${panel.id}`,
-                      `N_${idx + 1}`,
-                      e,
-                    )}
+                  onmousedown={(e) => handleTerminalMouseDown(`N_BAR_${panel.id}`, `N_${idx + 1}`, e, 'neutral')}
+                  onmouseup={(e) => handleTerminalMouseUp(`N_BAR_${panel.id}`, `N_${idx + 1}`, e)}
                   onclick={(e) => e.stopPropagation()}
                   role="button"
                   tabindex="0"
@@ -977,8 +821,7 @@
           <!-- INTER-RAIL GUTTER DIMENSION GUIDES -->
           {#if panel.rows > 1}
             {#each Array(panel.rows - 1) as _, r}
-              {@const gutterTopY =
-                PADDING_Y + r * pRailSpacing + DEVICE_HEIGHT_PX}
+              {@const gutterTopY = PADDING_Y + r * pRailSpacing + DEVICE_HEIGHT_PX}
               {@const gutterBottomY = PADDING_Y + (r + 1) * pRailSpacing}
               {@const gutterHeight = gutterBottomY - gutterTopY}
               {@const gutterMidY = (gutterTopY + gutterBottomY) / 2}
@@ -1103,19 +946,14 @@
             {@const railY = PADDING_Y + busbar.railIndex * pRailSpacing}
             {@const barX = PADDING_X + busbar.startSlot * MODULE_WIDTH_PX}
             {@const barWidth = busbar.slotSpan * MODULE_WIDTH_PX}
-            {@const barY =
-              busbar.position === "top"
-                ? railY - 14
-                : railY + DEVICE_HEIGHT_PX + 4}
-            {@const isSelected =
-              panelStore.selectedType === "busbar" &&
-              panelStore.selectedId === busbar.id}
+            {@const barY = busbar.position === 'top' ? railY - 14 : railY + DEVICE_HEIGHT_PX + 4}
+            {@const isSelected = panelStore.selectedType === 'busbar' && panelStore.selectedId === busbar.id}
 
             <g
               class="comb-busbar cursor-pointer group"
               onclick={(e) => {
                 e.stopPropagation();
-                panelStore.select("busbar", busbar.id);
+                panelStore.select('busbar', busbar.id);
               }}
               role="button"
               tabindex="0"
@@ -1126,8 +964,8 @@
                 width={barWidth - 4}
                 height="10"
                 rx="2"
-                fill={isSelected ? "#3b82f6" : "#e2e8f0"}
-                stroke={isSelected ? "#1d4ed8" : "#94a3b8"}
+                fill={isSelected ? '#3b82f6' : '#e2e8f0'}
+                stroke={isSelected ? '#1d4ed8' : '#94a3b8'}
                 stroke-width="1.5"
               />
               <text
@@ -1144,7 +982,7 @@
                 {@const prongX = barX + (p + 0.5) * MODULE_WIDTH_PX}
                 <rect
                   x={prongX - 2.5}
-                  y={busbar.position === "top" ? barY + 9 : barY - 8}
+                  y={busbar.position === 'top' ? barY + 9 : barY - 8}
                   width="5"
                   height="8"
                   fill="#d97706"
@@ -1202,55 +1040,29 @@
 
       <!-- ROUTED WIRES -->
       {#each panelStore.wires as wire (wire.id)}
-        {@const src = getTerminalCoords(
-          wire.sourceDeviceId,
-          wire.sourceTerminalId,
-        )}
-        {@const tgt = getTerminalCoords(
-          wire.targetDeviceId,
-          wire.targetTerminalId,
-        )}
+        {@const src = getTerminalCoords(wire.sourceDeviceId, wire.sourceTerminalId)}
+        {@const tgt = getTerminalCoords(wire.targetDeviceId, wire.targetTerminalId)}
         {#if src && tgt}
           {@const gauge = getGaugeDef(wire.gaugeMetric)}
-          {@const isSelected =
-            panelStore.selectedType === "wire" &&
-            panelStore.selectedId === wire.id}
+          {@const isSelected = panelStore.selectedType === 'wire' && panelStore.selectedId === wire.id}
           {@const isDark = isDarkWireColor(wire.color)}
-          {@const pathD = generateWirePath(
-            src,
-            tgt,
-            wire.waypoints || [],
-            wire.routingMode || "orthogonal",
-          )}
+          {@const pathD = generateWirePath(src, tgt, wire.waypoints || [], wire.routingMode || 'orthogonal')}
 
           <g
             class="wire-group cursor-pointer group"
-            pointer-events={panelStore.wireDraft ||
-            panelStore.activeTool === "wire"
-              ? "none"
-              : "auto"}
+            pointer-events={panelStore.wireDraft || panelStore.activeTool === 'wire' ? 'none' : 'auto'}
             onmousedown={(e) => {
               if (e.button !== 0) return;
               const rect = getSvgRect();
               if (!rect) return;
-              const rawX =
-                (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
-              const rawY =
-                (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
+              const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
+              const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
               if (Math.hypot(rawX - src.x, rawY - src.y) <= 15) {
-                handleTerminalMouseDown(
-                  wire.sourceDeviceId,
-                  wire.sourceTerminalId,
-                  e,
-                );
+                handleTerminalMouseDown(wire.sourceDeviceId, wire.sourceTerminalId, e);
                 return;
               }
               if (Math.hypot(rawX - tgt.x, rawY - tgt.y) <= 15) {
-                handleTerminalMouseDown(
-                  wire.targetDeviceId,
-                  wire.targetTerminalId,
-                  e,
-                );
+                handleTerminalMouseDown(wire.targetDeviceId, wire.targetTerminalId, e);
                 return;
               }
             }}
@@ -1258,10 +1070,8 @@
               e.stopPropagation();
               const rect = getSvgRect();
               if (rect) {
-                const rawX =
-                  (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
-                const rawY =
-                  (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
+                const rawX = (e.clientX - rect.left - panelStore.pan.x) / panelStore.zoom;
+                const rawY = (e.clientY - rect.top - panelStore.pan.y) / panelStore.zoom;
                 if (
                   Math.hypot(rawX - src.x, rawY - src.y) <= 15 ||
                   Math.hypot(rawX - tgt.x, rawY - tgt.y) <= 15
@@ -1269,7 +1079,7 @@
                   return;
                 }
               }
-              panelStore.select("wire", wire.id);
+              panelStore.select('wire', wire.id);
             }}
             ondblclick={(e) => handleWireDoubleClick(wire.id, e)}
             role="button"
@@ -1279,7 +1089,7 @@
             <path
               d={pathD}
               fill="none"
-              stroke={isSelected ? "#38bdf8" : "transparent"}
+              stroke={isSelected ? '#38bdf8' : 'transparent'}
               stroke-width={gauge.renderWidth + 8}
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -1290,10 +1100,8 @@
             <path
               d={pathD}
               fill="none"
-              stroke={isDark ? "#cbd5e1" : "#020617"}
-              stroke-width={isDark
-                ? gauge.renderWidth + 2.6
-                : gauge.renderWidth + 1.4}
+              stroke={isDark ? '#cbd5e1' : '#020617'}
+              stroke-width={isDark ? gauge.renderWidth + 2.6 : gauge.renderWidth + 1.4}
               stroke-linecap="round"
               stroke-linejoin="round"
               opacity={isDark ? 0.92 : 0.45}
@@ -1303,7 +1111,7 @@
             <path
               d={pathD}
               fill="none"
-              stroke={isDark ? "#0f172a" : wire.color}
+              stroke={isDark ? '#0f172a' : wire.color}
               stroke-width={gauge.renderWidth}
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -1323,7 +1131,7 @@
             {/if}
 
             <!-- Secondary stripe for Green/Yellow ground wires -->
-            {#if wire.role === "earth" && wire.standard === "IEC"}
+            {#if wire.role === 'earth' && wire.standard === 'IEC'}
               <path
                 d={pathD}
                 fill="none"
@@ -1336,24 +1144,8 @@
             {/if}
 
             <!-- Source & Target Terminal Ring Caps -->
-            <circle
-              cx={src.x}
-              cy={src.y}
-              r="3.8"
-              pointer-events="none"
-              fill={isDark ? "#0f172a" : "#ffffff"}
-              stroke={isDark ? "#f8fafc" : wire.color}
-              stroke-width="1.8"
-            />
-            <circle
-              cx={tgt.x}
-              cy={tgt.y}
-              r="3.8"
-              pointer-events="none"
-              fill={isDark ? "#0f172a" : "#ffffff"}
-              stroke={isDark ? "#f8fafc" : wire.color}
-              stroke-width="1.8"
-            />
+            <circle cx={src.x} cy={src.y} r="3.8" pointer-events="none" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
+            <circle cx={tgt.x} cy={tgt.y} r="3.8" pointer-events="none" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
 
             <!-- DRAGGABLE WAYPOINT NODES (When wire is selected) -->
             {#if isSelected}
@@ -1361,8 +1153,7 @@
                 <g
                   class="waypoint-handle cursor-move"
                   transform="translate({wp.x}, {wp.y})"
-                  onmousedown={(e) =>
-                    handleWaypointMouseDown(wire.id, wpIdx, e)}
+                  onmousedown={(e) => handleWaypointMouseDown(wire.id, wpIdx, e)}
                   oncontextmenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1389,25 +1180,16 @@
 
       <!-- RUBBERBAND WIRE DRAFT (Active mouse connection - Pointer Events None) -->
       {#if panelStore.wireDraft}
-        {@const srcCoords = getTerminalCoords(
-          panelStore.wireDraft.sourceDeviceId,
-          panelStore.wireDraft.sourceTerminalId,
-        )}
+        {@const srcCoords = getTerminalCoords(panelStore.wireDraft.sourceDeviceId, panelStore.wireDraft.sourceTerminalId)}
         {#if srcCoords}
           {@const draftGauge = getGaugeDef(panelStore.activeWireGauge)}
-          {@const draftColor = getWireColor(
-            panelStore.activeWireRole,
-            panelStore.activePanel.wireStandard,
-          )}
+          {@const draftColor = getWireColor(panelStore.activeWireRole, panelStore.activePanel.wireStandard)}
           {@const isDraftDark = isDarkWireColor(draftColor.hex)}
           {@const draftPath = generateWirePath(
             srcCoords,
-            {
-              x: panelStore.wireDraft.currentX,
-              y: panelStore.wireDraft.currentY,
-            },
+            { x: panelStore.wireDraft.currentX, y: panelStore.wireDraft.currentY },
             [],
-            panelStore.activeWireRouting,
+            panelStore.activeWireRouting
           )}
           <g class="pointer-events-none" pointer-events="none">
             {#if isDraftDark}
@@ -1425,7 +1207,7 @@
             <path
               d={draftPath}
               fill="none"
-              stroke={isDraftDark ? "#0f172a" : draftColor.hex}
+              stroke={isDraftDark ? '#0f172a' : draftColor.hex}
               stroke-width={draftGauge.renderWidth}
               stroke-dasharray="6,4"
               stroke-linecap="round"
@@ -1433,12 +1215,7 @@
               class="animate-pulse"
             />
             <circle cx={srcCoords.x} cy={srcCoords.y} r="4" fill="#3b82f6" />
-            <circle
-              cx={panelStore.wireDraft.currentX}
-              cy={panelStore.wireDraft.currentY}
-              r="5"
-              fill="#60a5fa"
-            />
+            <circle cx={panelStore.wireDraft.currentX} cy={panelStore.wireDraft.currentY} r="5" fill="#60a5fa" />
           </g>
         {/if}
       {/if}
@@ -1446,16 +1223,10 @@
   </svg>
 
   <!-- Canvas Quick Zoom & Reset Floating Controls -->
-  <div
-    class="absolute bottom-4 left-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur border border-slate-700 p-1.5 rounded-lg shadow-xl text-slate-300"
-  >
+  <div class="absolute bottom-4 left-4 flex items-center gap-1.5 bg-slate-800/90 backdrop-blur border border-slate-700 p-1.5 rounded-lg shadow-xl text-slate-300">
     <button
       class="px-2.5 py-1 text-xs hover:bg-slate-700 rounded transition font-mono font-semibold"
-      onclick={() =>
-        (panelStore.zoom = Math.max(
-          0.4,
-          Number((panelStore.zoom - 0.1).toFixed(2)),
-        ))}
+      onclick={() => panelStore.zoom = Math.max(0.4, Number((panelStore.zoom - 0.1).toFixed(2)))}
       title="Zoom Out"
     >
       -
@@ -1465,11 +1236,7 @@
     </span>
     <button
       class="px-2.5 py-1 text-xs hover:bg-slate-700 rounded transition font-mono font-semibold"
-      onclick={() =>
-        (panelStore.zoom = Math.min(
-          2.5,
-          Number((panelStore.zoom + 0.1).toFixed(2)),
-        ))}
+      onclick={() => panelStore.zoom = Math.min(2.5, Number((panelStore.zoom + 0.1).toFixed(2)))}
       title="Zoom In"
     >
       +
