@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { generateEditToken, hashPassphrase, verifyPassphrase } from '#lib/server/auth';
+import { generateEditToken, hashPassphrase, verifyPassphrase, MIN_PASSPHRASE_LENGTH } from '#lib/server/auth';
 import { getPlansBucket } from '#lib/server/bucket';
 
 function sanitizeId(rawId: string): string {
@@ -127,7 +127,11 @@ export const PUT: RequestHandler = async ({ params, request, platform }) => {
     delete customMetadata.passphraseHash;
     delete customMetadata.passphraseSalt;
   } else if (typeof body.newPassphrase === 'string' && body.newPassphrase.trim()) {
-    const { hash, salt } = await hashPassphrase(body.newPassphrase.trim());
+    const newPass = body.newPassphrase.trim();
+    if (newPass.length < MIN_PASSPHRASE_LENGTH) {
+      throw error(400, `Passphrase must be at least ${MIN_PASSPHRASE_LENGTH} characters.`);
+    }
+    const { hash, salt } = await hashPassphrase(newPass);
     customMetadata.hasPassphrase = 'true';
     customMetadata.passphraseHash = hash;
     customMetadata.passphraseSalt = salt;

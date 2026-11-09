@@ -43,6 +43,8 @@ export const POST: RequestHandler = async ({ params, request, platform }) => {
 
   const isValid = await verifyPassphrase(passphrase, meta.passphraseHash, meta.passphraseSalt);
   if (!isValid) {
+    // Artificial delay to prevent automated high-speed brute-force dictionary attacks
+    await new Promise((resolve) => setTimeout(resolve, 500));
     return json({ error: 'incorrect', message: 'Incorrect passphrase.' }, { status: 401 });
   }
 

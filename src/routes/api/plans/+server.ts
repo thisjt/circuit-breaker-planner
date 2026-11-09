@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { CloudPlanSummary } from '#lib/types';
-import { generateEditToken, hashPassphrase } from '#lib/server/auth';
+import { generateEditToken, hashPassphrase, MIN_PASSPHRASE_LENGTH } from '#lib/server/auth';
 import { getPlansBucket } from '#lib/server/bucket';
 
 function generateShortId(length = 8): string {
@@ -82,6 +82,9 @@ export const POST: RequestHandler = async ({ request, platform }) => {
   };
 
   if (rawPassphrase) {
+    if (rawPassphrase.length < MIN_PASSPHRASE_LENGTH) {
+      throw error(400, `Passphrase must be at least ${MIN_PASSPHRASE_LENGTH} characters.`);
+    }
     const { hash, salt } = await hashPassphrase(rawPassphrase);
     customMetadata.hasPassphrase = 'true';
     customMetadata.passphraseHash = hash;
