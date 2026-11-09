@@ -230,7 +230,7 @@
                   <td class="py-2.5 px-3 text-amber-400 font-bold">{wire.gaugeMetric} mm²</td>
                   <td class="py-2.5 px-3">
                     <div class="flex items-center gap-1.5">
-                      <div class="w-3 h-3 rounded-full border border-slate-700" style="background-color: {wire.color};"></div>
+                      <div class="w-3 h-3 rounded-full border border-slate-300 ring-1 ring-white/30" style="background-color: {wire.color};"></div>
                       <span class="text-[10px] text-slate-400">{wire.color}</span>
                     </div>
                   </td>

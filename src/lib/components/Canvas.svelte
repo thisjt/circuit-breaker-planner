@@ -1,7 +1,7 @@
 <script lang="ts">
   import { panelStore } from '#lib/state.svelte';
   import { getDeviceDef } from '#lib/catalog';
-  import { getGaugeDef, getWireColor, isDarkColor } from '#lib/wireStandards';
+  import { getGaugeDef, getWireColor, isDarkWireColor } from '#lib/wireStandards';
   import type { FreeEquipment, WirePoint, WireRole } from '#lib/types';
   import DeviceItem from './DeviceItem.svelte';
 
@@ -1516,8 +1516,8 @@
         {#if src && tgt}
           {@const gauge = getGaugeDef(wire.gaugeMetric)}
           {@const isSelected = panelStore.selectedType === 'wire' && panelStore.selectedId === wire.id}
+          {@const isDark = isDarkWireColor(wire.color)}
           {@const pathD = generateWirePath(src, tgt, wire.waypoints || [], wire.routingMode || 'orthogonal')}
-          {@const isDark = isDarkColor(wire.color)}
 
           <g
             class="wire-group cursor-pointer group"
@@ -1534,46 +1534,44 @@
               d={pathD}
               fill="none"
               stroke={isSelected ? '#38bdf8' : 'transparent'}
-              stroke-width={gauge.renderWidth + 7}
+              stroke-width={gauge.renderWidth + 8}
               stroke-linecap="round"
               stroke-linejoin="round"
               class="group-hover:stroke-blue-400/50 transition-all"
             />
 
-            <!-- High-contrast casing outline for dark wires in dark mode -->
-            {#if isDark}
-              <path
-                d={pathD}
-                fill="none"
-                stroke="#94a3b8"
-                stroke-width={gauge.renderWidth + 2.5}
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                opacity="0.9"
-              />
-            {/if}
+            <!-- High-Contrast Cable Sheath Casing (makes black L1/Hot wires stand out crisply in dark mode) -->
+            <path
+              d={pathD}
+              fill="none"
+              stroke={isDark ? '#cbd5e1' : '#020617'}
+              stroke-width={isDark ? gauge.renderWidth + 2.6 : gauge.renderWidth + 1.4}
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              opacity={isDark ? 0.92 : 0.45}
+            />
 
             <!-- Wire Outer Core -->
             <path
               d={pathD}
               fill="none"
-              stroke={wire.color}
+              stroke={isDark ? '#0f172a' : wire.color}
               stroke-width={gauge.renderWidth}
               stroke-linecap="round"
               stroke-linejoin="round"
               class="filter drop-shadow"
             />
 
-            <!-- Longitudinal specular sheen line down center of dark wires -->
+            <!-- Cylindrical Insulation Specular Sheen for Black / Dark Conductors -->
             {#if isDark}
               <path
                 d={pathD}
                 fill="none"
-                stroke="#cbd5e1"
-                stroke-width={Math.max(1, gauge.renderWidth * 0.25)}
+                stroke="#94a3b8"
+                stroke-width={Math.max(1, gauge.renderWidth * 0.22)}
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                opacity="0.45"
+                opacity="0.65"
               />
             {/if}
 
@@ -1591,22 +1589,8 @@
             {/if}
 
             <!-- Source & Target Terminal Ring Caps -->
-            <circle
-              cx={src.x}
-              cy={src.y}
-              r={isDark ? 4 : 3.5}
-              fill="#ffffff"
-              stroke={isDark ? '#64748b' : wire.color}
-              stroke-width={isDark ? 2 : 1.5}
-            />
-            <circle
-              cx={tgt.x}
-              cy={tgt.y}
-              r={isDark ? 4 : 3.5}
-              fill="#ffffff"
-              stroke={isDark ? '#64748b' : wire.color}
-              stroke-width={isDark ? 2 : 1.5}
-            />
+            <circle cx={src.x} cy={src.y} r="3.8" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
+            <circle cx={tgt.x} cy={tgt.y} r="3.8" fill={isDark ? '#0f172a' : '#ffffff'} stroke={isDark ? '#f8fafc' : wire.color} stroke-width="1.8" />
 
             <!-- DRAGGABLE WAYPOINT NODES (When wire is selected) -->
             {#if isSelected}
@@ -1645,32 +1629,34 @@
         {#if srcCoords}
           {@const draftGauge = getGaugeDef(panelStore.activeWireGauge)}
           {@const draftColor = getWireColor(panelStore.activeWireRole, panelStore.activePanel.wireStandard)}
+          {@const isDraftDark = isDarkWireColor(draftColor.hex)}
           {@const draftPath = generateWirePath(
             srcCoords,
             { x: panelStore.wireDraft.currentX, y: panelStore.wireDraft.currentY },
             [],
             panelStore.activeWireRouting
           )}
-          {@const isDraftDark = isDarkColor(draftColor.hex)}
           <g class="pointer-events-none" pointer-events="none">
             {#if isDraftDark}
-              <!-- High-contrast casing outline for rubberband draft -->
               <path
                 d={draftPath}
                 fill="none"
-                stroke="#94a3b8"
-                stroke-width={draftGauge.renderWidth + 3}
+                stroke="#e2e8f0"
+                stroke-width={draftGauge.renderWidth + 2.8}
+                stroke-dasharray="6,4"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                opacity="0.85"
+                opacity="0.9"
               />
             {/if}
             <path
               d={draftPath}
               fill="none"
-              stroke={draftColor.hex}
+              stroke={isDraftDark ? '#0f172a' : draftColor.hex}
               stroke-width={draftGauge.renderWidth}
               stroke-dasharray="6,4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
               class="animate-pulse"
             />
             <circle cx={srcCoords.x} cy={srcCoords.y} r="4" fill="#3b82f6" />

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { panelStore } from "#lib/state.svelte";
-  import { WIRE_GAUGES } from "#lib/wireStandards";
+  import { WIRE_GAUGES, getWireColor } from "#lib/wireStandards";
   import type { WireRole, WireStandard } from "#lib/types";
   import {
     MousePointer,
@@ -309,18 +309,26 @@
         {panelStore.activePanel.wireStandard === "PEC" ? "PEC" : "IEC"}
       </button>
 
-      <select
-        bind:value={panelStore.activeWireRole}
-        class="bg-slate-800 text-xs text-slate-300 border border-slate-700 rounded px-1.5 py-0.5 outline-none hover:border-slate-600 transition"
-        title="Active Wire Conductor Role"
-      >
-        <option value="line1">L1 / Hot</option>
-        <option value="line2">L2 / Phase 2</option>
-        <option value="neutral">Neutral (N)</option>
-        <option value="earth">Ground (PE)</option>
-        <option value="dc_pos">DC (+) Solar/Bat</option>
-        <option value="dc_neg">DC (-) Return</option>
-      </select>
+      <div class="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded pl-1.5 pr-1 py-0.5 hover:border-slate-600 transition">
+        <span
+          class="w-3 h-3 rounded-full inline-block border border-slate-300 ring-1 ring-white/30 flex-shrink-0"
+          style="background-color: {getWireColor(panelStore.activeWireRole, panelStore.activePanel.wireStandard).hex};"
+          title={getWireColor(panelStore.activeWireRole, panelStore.activePanel.wireStandard).description}
+        ></span>
+        <select
+          bind:value={panelStore.activeWireRole}
+          class="bg-slate-800 text-xs text-slate-300 outline-none cursor-pointer"
+          title="Active Wire Conductor Role"
+        >
+          <option value="line1">L1 / Hot</option>
+          <option value="line2">L2 / Phase 2</option>
+          <option value="line3">L3 / Phase 3</option>
+          <option value="neutral">Neutral (N)</option>
+          <option value="earth">Ground (PE)</option>
+          <option value="dc_pos">DC (+) Solar/Bat</option>
+          <option value="dc_neg">DC (-) Return</option>
+        </select>
+      </div>
 
       <select
         bind:value={panelStore.activeWireGauge}

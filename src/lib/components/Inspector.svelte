@@ -310,7 +310,7 @@
               >
                 <div class="flex items-center gap-2">
                   <span
-                    class="w-2.5 h-2.5 rounded-full inline-block border border-black/40 flex-shrink-0"
+                    class="w-3 h-3 rounded-full inline-block border border-slate-300 ring-1 ring-white/30 flex-shrink-0"
                     style="background-color: {wire.color};"
                   ></span>
                   <div class="font-mono text-[11px]">
@@ -373,6 +373,48 @@
           <option value="dc_neg">DC (-) / Ground Return</option>
           <option value="signal">Control / Signal</option>
         </select>
+      </div>
+
+      <!-- Conductor Insulation Color & Sheath Preview -->
+      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-semibold text-slate-400">Conductor Insulation Color</span>
+          <button
+            type="button"
+            class="text-[10px] text-blue-400 hover:text-blue-300 underline underline-offset-2 transition"
+            onclick={() => {
+              selectedWire.color = getWireColor(selectedWire.role, selectedWire.standard).hex;
+              panelStore.saveToLocalStorage();
+            }}
+            title="Reset wire color to electrical standard default"
+          >
+            Reset Standard
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <label class="relative flex items-center cursor-pointer" title="Click to customize conductor color">
+            <input
+              type="color"
+              bind:value={selectedWire.color}
+              oninput={() => panelStore.saveToLocalStorage()}
+              class="sr-only"
+            />
+            <span
+              class="w-7 h-7 rounded-lg border-2 border-slate-300 ring-2 ring-white/20 shadow-md flex items-center justify-center"
+              style="background-color: {selectedWire.color};"
+            ></span>
+          </label>
+          <div class="min-w-0 flex-1">
+            <div class="font-mono text-[11px] font-bold text-slate-200">
+              {getWireColor(selectedWire.role, selectedWire.standard).name}
+              <span class="text-slate-400 font-normal">({selectedWire.color})</span>
+            </div>
+            <div class="text-[10px] text-slate-400 truncate">
+              {getWireColor(selectedWire.role, selectedWire.standard).description}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -951,7 +993,7 @@
               <div class="flex items-center justify-between bg-slate-950 px-2 py-1.5 rounded text-[11px] border border-slate-800">
                 <div class="flex items-center gap-1.5">
                   <span
-                    class="w-2.5 h-2.5 rounded-full inline-block border border-black/40 flex-shrink-0"
+                    class="w-3 h-3 rounded-full inline-block border border-slate-300 ring-1 ring-white/30 flex-shrink-0"
                     style="background-color: {wire.color};"
                   ></span>
                   <span class="font-mono text-slate-300">{localTerm} → {remoteDev}:{remoteTerm}</span>

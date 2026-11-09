@@ -126,22 +126,30 @@ export function getGaugeDef(metricMm2: number): WireGaugeDef {
 }
 
 /**
- * Determines if a wire hex color is dark enough to require a high-contrast casing/outline
- * in dark mode so it remains clearly visible against dark canvas backgrounds (#020617).
+ * Returns true if the given wire color hex is black or very dark (e.g., PEC L1 Hot Black,
+ * IEC L2 Black, or DC Negative), requiring a high-contrast outer casing and specular
+ * highlight to remain clearly visible on dark canvas backgrounds.
  */
-export function isDarkColor(hex?: string): boolean {
+export function isDarkWireColor(hex: string): boolean {
   if (!hex) return false;
-  let c = hex.replace('#', '').trim();
-  if (c.length === 3) {
-    c = c.split('').map((x) => x + x).join('');
+  const clean = hex.trim().replace('#', '');
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16);
+    const g = parseInt(clean[1] + clean[1], 16);
+    const b = parseInt(clean[2] + clean[2], 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) < 70;
   }
-  if (c.length !== 6) return false;
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return false;
-  // Perceived sRGB luminance threshold
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance < 0.28;
+  if (clean.length >= 6) {
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) {
+      return (0.299 * r + 0.587 * g + 0.114 * b) < 70;
+    }
+  }
+  return ['#111827', '#0f172a', '#18181b', '#1e293b', '#020617', '#000000', 'black'].includes(
+    hex.toLowerCase()
+  );
 }
+
 
