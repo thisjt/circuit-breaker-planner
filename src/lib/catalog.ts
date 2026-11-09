@@ -301,6 +301,24 @@ export const DEVICE_CATALOG: DeviceDefinition[] = [
     description: '1-Module (18mm) unipolar distribution block (UKK 80A style) splitting 1 main incoming feed (up to 16mm²) into 4 branch outgoing circuits (up to 10mm²).'
   },
   {
+    typeId: 'terminal-3in3out-1m',
+    name: '3-In 3-Out Terminal Block',
+    category: 'terminal',
+    widthModules: 1,
+    poles: 3,
+    ratedAmps: 32,
+    colorAccent: '#0d9488', // Teal terminal accent
+    terminals: [
+      { id: 'IN_1', label: 'IN 1', position: 'top', slotOffset: 0.2, yOffset: 13, type: 'cage', defaultRole: 'line1' },
+      { id: 'IN_2', label: 'IN 2', position: 'top', slotOffset: 0.5, yOffset: 13, type: 'cage', defaultRole: 'line2' },
+      { id: 'IN_3', label: 'IN 3', position: 'top', slotOffset: 0.8, yOffset: 13, type: 'cage', defaultRole: 'earth' },
+      { id: 'OUT_1', label: 'OUT 1', position: 'bottom', slotOffset: 0.2, yOffset: 147, type: 'cage', defaultRole: 'line1' },
+      { id: 'OUT_2', label: 'OUT 2', position: 'bottom', slotOffset: 0.5, yOffset: 147, type: 'cage', defaultRole: 'line2' },
+      { id: 'OUT_3', label: 'OUT 3', position: 'bottom', slotOffset: 0.8, yOffset: 147, type: 'cage', defaultRole: 'earth' }
+    ],
+    description: '1-Module (18mm) compact 3-In 3-Out DIN-rail terminal block for 3-wire feed-through or splitting (L / N / PE or 3-channel connections).'
+  },
+  {
     typeId: 'terminal-passthrough-1m',
     name: '1-Module Feed-through Block',
     category: 'terminal',

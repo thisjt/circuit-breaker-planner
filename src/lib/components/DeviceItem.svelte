@@ -858,6 +858,110 @@
     >
       {device.circuitDescription || "Feeder Splitter"}
     </text>
+  {:else if def?.typeId === "terminal-3in3out-1m"}
+    <!-- 3-IN 3-OUT COMPACT 1-MODULE TERMINAL BLOCK -->
+    <!-- Top 3 cage terminal cavities -->
+    <rect x="3" y="2" width="11.5" height="25" rx="1.5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.7" />
+    <rect x="16.25" y="2" width="11.5" height="25" rx="1.5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.7" />
+    <rect x="29.5" y="2" width="11.5" height="25" rx="1.5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.7" />
+
+    <!-- Bottom 3 cage terminal cavities -->
+    <rect x="3" y="133" width="11.5" height="25" rx="1.5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.7" />
+    <rect x="16.25" y="133" width="11.5" height="25" rx="1.5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.7" />
+    <rect x="29.5" y="133" width="11.5" height="25" rx="1.5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="0.7" />
+
+    <!-- Center Modular Faceplate Body -->
+    <rect
+      x="3"
+      y="29"
+      width={totalWidth - 6}
+      height="102"
+      rx="3"
+      fill="#f8fafc"
+      stroke="#cbd5e1"
+      stroke-width="1.2"
+    />
+
+    <!-- Teal Category Accent Strip -->
+    <rect
+      x="3"
+      y="29"
+      width={totalWidth - 6}
+      height="4"
+      rx="1.5"
+      fill={def?.colorAccent || "#0d9488"}
+    />
+
+    <!-- Title Badge -->
+    <text
+      x={totalWidth / 2}
+      y="41"
+      text-anchor="middle"
+      font-size="5.5"
+      font-weight="900"
+      fill="#0f172a"
+      font-family="system-ui, sans-serif"
+    >
+      {device.customLabel || "TERM BLOCK"}
+    </text>
+
+    <!-- Subtitle Pill: 3-IN 3-OUT -->
+    <rect x="5.5" y="44.5" width="33" height="9" rx="1.5" fill="#ccfbf1" stroke="#14b8a6" stroke-width="0.6" />
+    <text
+      x={totalWidth / 2}
+      y="51"
+      text-anchor="middle"
+      font-size="4.8"
+      font-weight="900"
+      fill="#0f766e"
+      font-family="monospace"
+    >
+      3-IN  3-OUT
+    </text>
+
+    <!-- Ratings -->
+    <text
+      x={totalWidth / 2}
+      y="59.5"
+      text-anchor="middle"
+      font-size="4.4"
+      font-weight="bold"
+      fill="#64748b"
+      font-family="monospace"
+    >
+      32A 450V~
+    </text>
+
+    <!-- 3 Internal Feed-Through Conductive Channels & Lever Actuators -->
+    <g transform="translate(0, 64)">
+      <!-- Channel 1 (Left - Line / L) -->
+      <line x1="8.8" y1="0" x2="8.8" y2="52" stroke="#f97316" stroke-width="1.6" stroke-dasharray="2,1" />
+      <rect x="5.3" y="7" width="7" height="14" rx="1.2" fill="#ea580c" stroke="#9a3412" stroke-width="0.5" />
+      <rect x="5.3" y="31" width="7" height="14" rx="1.2" fill="#ea580c" stroke="#9a3412" stroke-width="0.5" />
+
+      <!-- Channel 2 (Center - Neutral / L2) -->
+      <line x1="22" y1="0" x2="22" y2="52" stroke="#0284c7" stroke-width="1.6" stroke-dasharray="2,1" />
+      <rect x="18.5" y="7" width="7" height="14" rx="1.2" fill="#0284c7" stroke="#075985" stroke-width="0.5" />
+      <rect x="18.5" y="31" width="7" height="14" rx="1.2" fill="#0284c7" stroke="#075985" stroke-width="0.5" />
+
+      <!-- Channel 3 (Right - Earth / PE / Ch3) -->
+      <line x1="35.2" y1="0" x2="35.2" y2="52" stroke="#16a34a" stroke-width="1.6" stroke-dasharray="2,1" />
+      <rect x="31.7" y="7" width="7" height="14" rx="1.2" fill="#16a34a" stroke="#166534" stroke-width="0.5" />
+      <rect x="31.7" y="31" width="7" height="14" rx="1.2" fill="#16a34a" stroke="#166534" stroke-width="0.5" />
+    </g>
+
+    <!-- Circuit description / tag at bottom of faceplate -->
+    <text
+      x={totalWidth / 2}
+      y="126"
+      text-anchor="middle"
+      font-size="4.8"
+      font-weight="bold"
+      fill="#64748b"
+      class="truncate select-none font-sans"
+    >
+      {device.circuitDescription || "3-Way Pass"}
+    </text>
   {:else}
     <!-- Recessed Front Faceplate (standard 45mm DIN opening) -->
     <rect
@@ -1209,6 +1313,7 @@
   {#each topTerminals as term (term.id)}
     {@const termX = term.slotOffset * moduleWidthPx}
     {@const termY = term.yOffset !== undefined ? term.yOffset : 12}
+    {@const isCompact3 = device.widthModules === 1 && topTerminals.length >= 3}
     <g
       class="terminal terminal-top cursor-pointer group"
       transform="translate({termX}, {termY})"
@@ -1218,35 +1323,35 @@
       role="button"
       tabindex="0"
     >
-      <!-- Generous invisible hit area -->
-      <circle r="14" fill="transparent" />
+      <!-- Generous invisible hit area (scaled for 3-terminal 1M blocks so neighbors don't overlap) -->
+      <circle r={isCompact3 ? 6.2 : 14} fill="transparent" />
       <title>{term.label}</title>
 
       <!-- Screw / Terminal Housing -->
       <circle
-        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 5.5 : 8)}
+        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : isCompact3 ? 4.3 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 5.5 : 8)}
         fill="#e2e8f0"
         stroke="#64748b"
-        stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
-          ? 1
+        stroke-width={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3
+          ? 1.1
           : 1.5}
         class="group-hover:stroke-blue-500 group-hover:scale-125"
       />
       <!-- Screw Slot -->
       <line
-        x1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? -2.5 : -4)}
-        y1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? -2 : -3)}
-        x2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 2.5 : 4)}
-        y2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 2 : 3)}
+        x1={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? -2.5 : -4)}
+        y1={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? -1.8 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? -2 : -3)}
+        x2={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 2.5 : 4)}
+        y2={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? 1.8 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && topTerminals.length > 1) ? 2 : 3)}
         stroke="#475569"
-        stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
+        stroke-width={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3
           ? 1
           : 1.5}
       />
 
       <!-- Interactive Click Dot -->
       <circle
-        r="4"
+        r={isCompact3 ? 3 : 4}
         fill="#3b82f6"
         class="opacity-0 group-hover:opacity-100"
       />
@@ -1255,9 +1360,9 @@
       {#if def?.typeId !== 'mts-2p-63a'}
         <text
           x="0"
-          y={def?.category === "ats" ? (term.id.startsWith("SIG") ? 12 : 16) : 18}
+          y={isCompact3 ? 11.5 : (def?.category === "ats" ? (term.id.startsWith("SIG") ? 12 : 16) : 18)}
           text-anchor="middle"
-          font-size={device.widthModules === 1 && topTerminals.length > 1 ? "5.5" : (def?.category === "ats" ? "6.5" : "7")}
+          font-size={isCompact3 ? "4.2" : (device.widthModules === 1 && topTerminals.length > 1 ? "5.5" : (def?.category === "ats" ? "6.5" : "7"))}
           font-weight="bold"
           fill="#475569"
         >
@@ -1271,6 +1376,7 @@
   {#each bottomTerminals as term (term.id)}
     {@const termX = term.slotOffset * moduleWidthPx}
     {@const termY = term.yOffset !== undefined ? term.yOffset : heightPx - 14}
+    {@const isCompact3 = device.widthModules === 1 && bottomTerminals.length >= 3 && def?.typeId !== 'terminal-dist-1in4out'}
     <g
       class="terminal terminal-bottom cursor-pointer group"
       transform="translate({termX}, {termY})"
@@ -1280,21 +1386,23 @@
       role="button"
       tabindex="0"
     >
-      <!-- Generous invisible hit area -->
-      <circle r="14" fill="transparent" />
+      <!-- Generous invisible hit area (scaled for 3-terminal 1M blocks so neighbors don't overlap) -->
+      <circle r={isCompact3 ? 6.2 : 14} fill="transparent" />
       <title>{term.label}</title>
 
       <!-- Terminal Label -->
       {#if def?.typeId !== 'mts-2p-63a'}
         <text
           x="0"
-          y={def?.category === "ats"
-            ? term.id.startsWith("SIG")
-              ? -7
-              : -9
-            : (def?.typeId === 'terminal-dist-1in4out' ? -7 : -10)}
+          y={isCompact3
+            ? -6.5
+            : def?.category === "ats"
+              ? term.id.startsWith("SIG")
+                ? -7
+                : -9
+              : (def?.typeId === 'terminal-dist-1in4out' ? -7 : -10)}
           text-anchor="middle"
-          font-size={def?.typeId === 'terminal-dist-1in4out' ? "4.8" : (device.widthModules === 1 && bottomTerminals.length > 1 ? "5.5" : (def?.category === "ats" ? "6.5" : "7"))}
+          font-size={isCompact3 ? "4.1" : (def?.typeId === 'terminal-dist-1in4out' ? "4.8" : (device.widthModules === 1 && bottomTerminals.length > 1 ? "5.5" : (def?.category === "ats" ? "6.5" : "7")))}
           font-weight="bold"
           fill="#475569"
         >
@@ -1304,29 +1412,29 @@
 
       <!-- Screw / Terminal Housing -->
       <circle
-        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 5.5 : 8)}
+        r={def?.category === "ats" && term.id.startsWith("SIG") ? 4 : isCompact3 ? 4.3 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 5.5 : 8)}
         fill="#e2e8f0"
         stroke="#64748b"
-        stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
-          ? 1
+        stroke-width={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3
+          ? 1.1
           : 1.5}
         class="group-hover:stroke-blue-500 group-hover:scale-125"
       />
       <!-- Screw Slot -->
       <line
-        x1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? -2.5 : -4)}
-        y1={def?.category === "ats" && term.id.startsWith("SIG") ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? -2 : -3)}
-        x2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 2.5 : 4)}
-        y2={def?.category === "ats" && term.id.startsWith("SIG") ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 2 : 3)}
+        x1={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? -2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? -2.5 : -4)}
+        y1={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? -1.8 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? -2 : -3)}
+        x2={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? 2 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 2.5 : 4)}
+        y2={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3 ? 1.8 : (def?.typeId === 'mts-2p-63a' || (device.widthModules === 1 && bottomTerminals.length > 1) ? 2 : 3)}
         stroke="#475569"
-        stroke-width={def?.category === "ats" && term.id.startsWith("SIG")
+        stroke-width={def?.category === "ats" && term.id.startsWith("SIG") || isCompact3
           ? 1
           : 1.5}
       />
 
       <!-- Interactive Click Dot -->
       <circle
-        r="4"
+        r={isCompact3 ? 3 : 4}
         fill="#3b82f6"
         class="opacity-0 group-hover:opacity-100"
       />
