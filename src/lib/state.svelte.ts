@@ -234,7 +234,15 @@ export class PanelState {
             panelId: d.panelId || this.panels[0].id
           }));
         }
-        if (Array.isArray(parsed.wires)) this.wires = parsed.wires;
+        if (Array.isArray(parsed.wires)) {
+          this.wires = parsed.wires.map((w: any) => ({
+            ...w,
+            color:
+              w.standard === 'IEC' && w.role === 'line1' && w.color === '#dc2626'
+                ? '#78350f'
+                : w.color
+          }));
+        }
         if (Array.isArray(parsed.busbars)) {
           this.busbars = parsed.busbars.map((b: any) => ({
             ...b,

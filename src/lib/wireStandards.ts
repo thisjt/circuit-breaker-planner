@@ -58,7 +58,7 @@ export const IEC_COLORS: Record<WireRole, WireColorDef> = {
   line1: {
     name: 'Line 1 (L1 / L)',
     role: 'line1',
-    hex: '#78350f', // Brown
+    hex: '#78350f', // Brown / Burgundy
     description: 'IEC Line 1 (Brown)'
   },
   line2: {
@@ -137,14 +137,14 @@ export function isDarkWireColor(hex: string): boolean {
     const r = parseInt(clean[0] + clean[0], 16);
     const g = parseInt(clean[1] + clean[1], 16);
     const b = parseInt(clean[2] + clean[2], 16);
-    return (0.299 * r + 0.587 * g + 0.114 * b) < 70;
+    return Math.max(r, g, b) < 60 && (0.299 * r + 0.587 * g + 0.114 * b) < 45;
   }
   if (clean.length >= 6) {
     const r = parseInt(clean.slice(0, 2), 16);
     const g = parseInt(clean.slice(2, 4), 16);
     const b = parseInt(clean.slice(4, 6), 16);
     if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) {
-      return (0.299 * r + 0.587 * g + 0.114 * b) < 70;
+      return Math.max(r, g, b) < 60 && (0.299 * r + 0.587 * g + 0.114 * b) < 45;
     }
   }
   return ['#111827', '#0f172a', '#18181b', '#1e293b', '#020617', '#000000', 'black'].includes(

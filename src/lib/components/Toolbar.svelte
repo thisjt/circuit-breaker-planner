@@ -223,8 +223,11 @@
           ? 'bg-amber-950/60 text-amber-300 border-amber-700/60'
           : 'bg-blue-950/60 text-blue-300 border-blue-700/60'} transition"
         onclick={() => {
-          panelStore.activePanel.wireStandard =
+          const nextStandard =
             panelStore.activePanel.wireStandard === "PEC" ? "IEC" : "PEC";
+          for (const p of panelStore.panels) {
+            p.wireStandard = nextStandard;
+          }
           panelStore.saveToLocalStorage();
         }}
         title="Toggle Electrical Standard (PEC vs IEC)"
