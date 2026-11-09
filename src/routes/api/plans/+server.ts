@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { CloudPlanSummary } from '#lib/types';
 import { generateEditToken, hashPassphrase, MIN_PASSPHRASE_LENGTH } from '#lib/server/auth';
-import { getPlansBucket } from '#lib/server/bucket';
+import { getPlansBucket, getBucketDiagnostic } from '#lib/server/bucket';
 
 function generateShortId(length = 8): string {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -18,7 +18,15 @@ function generateShortId(length = 8): string {
 export const GET: RequestHandler = async ({ platform }) => {
   const bucket = getPlansBucket(platform);
   if (!bucket) {
-    throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
+    const diagnostic = getBucketDiagnostic(platform);
+    return json(
+      {
+        error: 'bucket_unavailable',
+        message: 'R2 bucket binding PLANS_BUCKET is not available.',
+        diagnostic
+      },
+      { status: 503 }
+    );
   }
 
   const listed = await bucket.list({
@@ -51,7 +59,15 @@ export const GET: RequestHandler = async ({ platform }) => {
 export const POST: RequestHandler = async ({ request, platform }) => {
   const bucket = getPlansBucket(platform);
   if (!bucket) {
-    throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
+    const diagnostic = getBucketDiagnostic(platform);
+    return json(
+      {
+        error: 'bucket_unavailable',
+        message: 'R2 bucket binding PLANS_BUCKET is not available.',
+        diagnostic
+      },
+      { status: 503 }
+    );
   }
 
   const body = (await request.json()) as Record<string, any>;

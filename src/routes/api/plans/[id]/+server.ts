@@ -1,7 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { generateEditToken, hashPassphrase, verifyPassphrase, MIN_PASSPHRASE_LENGTH } from '#lib/server/auth';
-import { getPlansBucket } from '#lib/server/bucket';
+import { getPlansBucket, getBucketDiagnostic } from '#lib/server/bucket';
 
 function sanitizeId(rawId: string): string {
   return rawId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
@@ -10,7 +10,15 @@ function sanitizeId(rawId: string): string {
 export const GET: RequestHandler = async ({ params, request, platform }) => {
   const bucket = getPlansBucket(platform);
   if (!bucket) {
-    throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
+    const diagnostic = getBucketDiagnostic(platform);
+    return json(
+      {
+        error: 'bucket_unavailable',
+        message: 'R2 bucket binding PLANS_BUCKET is not available.',
+        diagnostic
+      },
+      { status: 503 }
+    );
   }
 
   const id = sanitizeId(params.id);
@@ -50,7 +58,15 @@ export const GET: RequestHandler = async ({ params, request, platform }) => {
 export const PUT: RequestHandler = async ({ params, request, platform }) => {
   const bucket = getPlansBucket(platform);
   if (!bucket) {
-    throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
+    const diagnostic = getBucketDiagnostic(platform);
+    return json(
+      {
+        error: 'bucket_unavailable',
+        message: 'R2 bucket binding PLANS_BUCKET is not available.',
+        diagnostic
+      },
+      { status: 503 }
+    );
   }
 
   const id = sanitizeId(params.id);
@@ -170,7 +186,15 @@ export const PUT: RequestHandler = async ({ params, request, platform }) => {
 export const DELETE: RequestHandler = async ({ params, request, platform }) => {
   const bucket = getPlansBucket(platform);
   if (!bucket) {
-    throw error(503, 'R2 bucket binding PLANS_BUCKET is not available.');
+    const diagnostic = getBucketDiagnostic(platform);
+    return json(
+      {
+        error: 'bucket_unavailable',
+        message: 'R2 bucket binding PLANS_BUCKET is not available.',
+        diagnostic
+      },
+      { status: 503 }
+    );
   }
 
   const id = sanitizeId(params.id);
