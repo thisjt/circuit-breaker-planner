@@ -9,5 +9,11 @@
 	"assets": {
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
-	}
+	},
+	"r2_buckets": [
+		{
+			"binding": "PLANS_BUCKET",
+			"bucket_name": "circuit-breaker-planner"
+		}
+	]
 }
