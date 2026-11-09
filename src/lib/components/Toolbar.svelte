@@ -1,7 +1,8 @@
 <script lang="ts">
   import { panelStore } from "#lib/state.svelte";
   import { WIRE_GAUGES, getWireColor } from "#lib/wireStandards";
-  import type { WireRole, WireStandard } from "#lib/types";
+  import { exportDiagramAsPNG, exportDiagramAsSVG } from "#lib/svgExport";
+  import type { FileModalMode } from "./FileModals.svelte";
   import {
     MousePointer,
     Cable,
@@ -13,19 +14,28 @@
     Printer,
     Image,
     Download,
-    Upload,
     Trash2,
     Plus,
     PanelLeftClose,
     PanelLeftOpen,
     PanelRightClose,
     PanelRightOpen,
+    FolderOpen,
+    FilePlus,
+    Save,
+    Share2,
+    ChevronDown,
+    Cloud,
+    FileCode
   } from "@lucide/svelte";
 
   interface Props {
     onOpenBOM: () => void;
     onOpenLabels: () => void;
     onOpenDRC: () => void;
+    onOpenFileModal: (mode: FileModalMode) => void;
+    onOpenPrintDiagram: () => void;
+    onQuickSave: () => void;
     isLeftSidebarOpen?: boolean;
     isRightSidebarOpen?: boolean;
     onToggleLeftSidebar?: () => void;
@@ -36,14 +46,17 @@
     onOpenBOM,
     onOpenLabels,
     onOpenDRC,
+    onOpenFileModal,
+    onOpenPrintDiagram,
+    onQuickSave,
     isLeftSidebarOpen = true,
     isRightSidebarOpen = true,
     onToggleLeftSidebar,
     onToggleRightSidebar,
   }: Props = $props();
 
-  let fileInput: HTMLInputElement | null = $state(null);
   let showBusbarModal = $state(false);
+  let showFileMenu = $state(false);
 
   // Manual Busbar form state
   let busbarPanelId = $state(panelStore.activePanelId);
@@ -53,185 +66,26 @@
   let busbarStartSlot = $state(0);
   let busbarSpan = $state(4);
 
-  function handleFileImport(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        const success = panelStore.importJSON(content);
-        if (!success) {
-          alert("Failed to parse JSON project file.");
-        }
-      }
-    };
-    reader.readAsText(file);
-    input.value = "";
-  }
-
   function handleExportJSON() {
     const jsonStr = panelStore.exportJSON();
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${panelStore.activePanel.name.toLowerCase().replace(/\s+/g, "_")}_circuit_plan.json`;
+    const baseName = (panelStore.projectTitle || panelStore.activePanel.name || "circuit_plan")
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, "_");
+    a.download = `${baseName}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  function buildExportableSvg(): {
-    clonedSvg: SVGSVGElement;
-    width: number;
-    height: number;
-  } | null {
-    const svg = (document.getElementById("circuit-diagram-svg") ||
-      document.querySelector("svg")) as SVGSVGElement | null;
-    if (!svg) return null;
-
-    let exportX = 0;
-    let exportY = 0;
-    let exportWidth = svg.clientWidth || 1200;
-    let exportHeight = svg.clientHeight || 800;
-
-    const contentLayer = svg.querySelector(
-      "#canvas-content-layer",
-    ) as SVGGraphicsElement | null;
-    if (contentLayer) {
-      try {
-        const bbox = contentLayer.getBBox();
-        if (bbox.width > 0 && bbox.height > 0) {
-          const margin = 60;
-          exportX = Math.floor(bbox.x - margin);
-          exportY = Math.floor(bbox.y - margin);
-          exportWidth = Math.ceil(bbox.width + margin * 2);
-          exportHeight = Math.ceil(bbox.height + margin * 2);
-        }
-      } catch {
-        // Fallback to viewport dimensions if getBBox fails
-      }
-    }
-
-    const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
-    clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    clonedSvg.setAttribute("width", String(exportWidth));
-    clonedSvg.setAttribute("height", String(exportHeight));
-    clonedSvg.setAttribute(
-      "viewBox",
-      `${exportX} ${exportY} ${exportWidth} ${exportHeight}`,
-    );
-
-    // Inline essential styles so standalone SVG/PNG rasterization preserves fonts and hidden hover elements
-    const styleEl = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "style",
-    );
-    styleEl.textContent = `
-      svg { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-      .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-      .uppercase { text-transform: uppercase; }
-      .tracking-wider { letter-spacing: 0.05em; }
-      .tracking-widest { letter-spacing: 0.1em; }
-      .opacity-0 { opacity: 0; }
-    `;
-    clonedSvg.insertBefore(styleEl, clonedSvg.firstChild);
-
-    const clonedPattern = clonedSvg.querySelector("#grid");
-    if (clonedPattern) {
-      clonedPattern.setAttribute("patternTransform", "");
-    }
-
-    const clonedGridRect = clonedSvg.querySelector("#canvas-grid-bg");
-    if (clonedGridRect && clonedGridRect.parentNode) {
-      clonedGridRect.setAttribute("x", String(exportX));
-      clonedGridRect.setAttribute("y", String(exportY));
-      clonedGridRect.setAttribute("width", String(exportWidth));
-      clonedGridRect.setAttribute("height", String(exportHeight));
-
-      const solidBg = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "rect",
-      );
-      solidBg.setAttribute("x", String(exportX));
-      solidBg.setAttribute("y", String(exportY));
-      solidBg.setAttribute("width", String(exportWidth));
-      solidBg.setAttribute("height", String(exportHeight));
-      solidBg.setAttribute("fill", "#020617");
-      clonedGridRect.parentNode.insertBefore(solidBg, clonedGridRect);
-    }
-
-    const clonedContentLayer = clonedSvg.querySelector("#canvas-content-layer");
-    if (clonedContentLayer) {
-      clonedContentLayer.setAttribute("transform", "");
-    }
-
-    return { clonedSvg, width: exportWidth, height: exportHeight };
   }
 
   function handleExportSVG() {
-    const exported = buildExportableSvg();
-    if (!exported) return;
-    const serializer = new XMLSerializer();
-    const source = serializer.serializeToString(exported.clonedSvg);
-    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${panelStore.activePanel.name.toLowerCase().replace(/\s+/g, "_")}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportDiagramAsSVG(panelStore.projectTitle || panelStore.activePanel.name || "circuit_diagram");
   }
 
   function handleExportPNG() {
-    const exported = buildExportableSvg();
-    if (!exported) return;
-    const { clonedSvg, width, height } = exported;
-
-    const serializer = new XMLSerializer();
-    const source = serializer.serializeToString(clonedSvg);
-    const svgBlob = new Blob([source], {
-      type: "image/svg+xml;charset=utf-8",
-    });
-    const url = URL.createObjectURL(svgBlob);
-
-    const img = new window.Image();
-    img.onload = () => {
-      const scale = Math.max(
-        1,
-        Math.min(2, Math.floor(8192 / Math.max(width, height, 1))),
-      );
-      const canvas = document.createElement("canvas");
-      canvas.width = width * scale;
-      canvas.height = height * scale;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        URL.revokeObjectURL(url);
-        return;
-      }
-
-      ctx.fillStyle = "#020617";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0, width, height);
-      URL.revokeObjectURL(url);
-
-      canvas.toBlob((pngBlob) => {
-        if (!pngBlob) return;
-        const pngUrl = URL.createObjectURL(pngBlob);
-        const a = document.createElement("a");
-        a.href = pngUrl;
-        a.download = `${panelStore.activePanel.name.toLowerCase().replace(/\s+/g, "_")}_diagram.png`;
-        a.click();
-        URL.revokeObjectURL(pngUrl);
-      }, "image/png");
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    exportDiagramAsPNG(panelStore.projectTitle || panelStore.activePanel.name || "circuit_diagram");
   }
 
   function handleAddBusbarSubmit() {
@@ -247,60 +101,283 @@
   }
 </script>
 
+<svelte:window
+  onclick={() => {
+    if (showFileMenu) showFileMenu = false;
+  }}
+/>
+
 <header
-  class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between gap-4 text-slate-200 select-none overflow-x-auto"
+  class="bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center justify-between gap-3 text-slate-200 select-none relative z-30"
 >
-  <!-- Left: Multi-Panel Switcher, Brand & Presets -->
-  <div class="flex items-center gap-3 flex-shrink-0">
-    <div class="flex items-center gap-2">
-      {#if onToggleLeftSidebar}
-        <button
-          type="button"
-          class="p-1.5 rounded-lg border transition flex items-center justify-center {isLeftSidebarOpen
-            ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
-            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'}"
-          onclick={onToggleLeftSidebar}
-          title="{isLeftSidebarOpen ? 'Hide' : 'Show'} Left Component Library ([)"
-        >
-          {#if isLeftSidebarOpen}
-            <PanelLeftClose class="w-4 h-4" />
-          {:else}
-            <PanelLeftOpen class="w-4 h-4" />
-          {/if}
-        </button>
-      {/if}
-
-      <div
-        class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 text-sm flex-shrink-0"
+  <!-- Left: Sidebar Toggle, Brand, File Menu, Project Title & Panel Switcher -->
+  <div class="flex items-center gap-2 flex-shrink-0">
+    {#if onToggleLeftSidebar}
+      <button
+        type="button"
+        class="p-1.5 rounded-lg border transition flex items-center justify-center {isLeftSidebarOpen
+          ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
+          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'}"
+        onclick={onToggleLeftSidebar}
+        title="{isLeftSidebarOpen ? 'Hide' : 'Show'} Left Component Library ([)"
       >
-        CB
-      </div>
+        {#if isLeftSidebarOpen}
+          <PanelLeftClose class="w-4 h-4" />
+        {:else}
+          <PanelLeftOpen class="w-4 h-4" />
+        {/if}
+      </button>
+    {/if}
 
-      <!-- Breaker Panel Switcher & + Add Panel -->
-      <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
-        <select
-          value={panelStore.activePanelId}
-          onchange={(e) => {
-            const id = (e.target as HTMLSelectElement).value;
-            panelStore.setActivePanel(id);
-            panelStore.select('panel', id);
-          }}
-          class="bg-slate-900 text-xs font-bold text-blue-400 border border-slate-700 rounded-lg px-2 py-1 outline-none hover:border-blue-500 transition max-w-44 truncate"
-          title="Switch Active Breaker Panel"
+    <div
+      class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 text-xs flex-shrink-0"
+    >
+      CB
+    </div>
+
+    <!-- FILE MENU DROPDOWN -->
+    <div class="relative">
+      <button
+        type="button"
+        class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition {showFileMenu
+          ? 'bg-blue-600 border-blue-500 text-white'
+          : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'}"
+        onclick={(e) => {
+          e.stopPropagation();
+          showFileMenu = !showFileMenu;
+        }}
+      >
+        <span>File</span>
+        <ChevronDown class="w-3.5 h-3.5 opacity-80" />
+      </button>
+
+      {#if showFileMenu}
+        <div
+          class="absolute left-0 top-full mt-1.5 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1.5 z-50 text-xs"
+          onclick={(e) => e.stopPropagation()}
+          role="menu"
+          tabindex="-1"
         >
-          {#each panelStore.panels as p}
-            <option value={p.id}>⚡ {p.name}</option>
-          {/each}
-        </select>
-        <button
-          class="px-2 py-1 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition flex items-center gap-1"
-          onclick={() => panelStore.addPanel()}
-          title="Add another Breaker Panel to the canvas"
-        >
-          <Plus class="w-3 h-3 text-blue-400" />
-          <span>Panel</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenFileModal("new");
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <FilePlus class="w-4 h-4 text-blue-400" />
+              <span>New Project...</span>
+            </span>
+            <span class="font-mono text-[10px] text-slate-500">Ctrl+N</span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenFileModal("open");
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <FolderOpen class="w-4 h-4 text-emerald-400" />
+              <span>Open (Cloud / Local)...</span>
+            </span>
+            <span class="font-mono text-[10px] text-slate-500">Ctrl+O</span>
+          </button>
+
+          <div class="my-1 border-t border-slate-800"></div>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onQuickSave();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Save class="w-4 h-4 text-blue-400" />
+              <span>Save {panelStore.cloudPlanId ? `(/plan/${panelStore.cloudPlanId})` : "to Cloud"}</span>
+            </span>
+            <span class="font-mono text-[10px] text-slate-500">Ctrl+S</span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenFileModal("save_as");
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Cloud class="w-4 h-4 text-cyan-400" />
+              <span>Save As...</span>
+            </span>
+            <span class="font-mono text-[10px] text-slate-500">Ctrl+Shift+S</span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenFileModal("share");
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Share2 class="w-4 h-4 text-emerald-400" />
+              <span>Share Link (/plan/id)...</span>
+            </span>
+          </button>
+
+          <div class="my-1 border-t border-slate-800"></div>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              handleExportPNG();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Image class="w-4 h-4 text-purple-400" />
+              <span>Export PNG Image (.png)</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              handleExportSVG();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <FileCode class="w-4 h-4 text-amber-400" />
+              <span>Export Vector SVG (.svg)</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              handleExportJSON();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Download class="w-4 h-4 text-slate-400" />
+              <span>Download Project File (.json)</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenBOM();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <FileSpreadsheet class="w-4 h-4 text-emerald-400" />
+              <span>Bill of Materials & Wires...</span>
+            </span>
+          </button>
+
+          <div class="my-1 border-t border-slate-800"></div>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenPrintDiagram();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Printer class="w-4 h-4 text-blue-400" />
+              <span>Print Diagram Sheet...</span>
+            </span>
+            <span class="font-mono text-[10px] text-slate-500">Ctrl+P</span>
+          </button>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-slate-800 flex items-center justify-between text-slate-200"
+            onclick={() => {
+              showFileMenu = false;
+              onOpenLabels();
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Printer class="w-4 h-4 text-cyan-400" />
+              <span>Print 18mm Breaker Labels...</span>
+            </span>
+          </button>
+
+          <div class="my-1 border-t border-slate-800"></div>
+
+          <button
+            type="button"
+            class="w-full px-3.5 py-2 text-left hover:bg-red-950/50 flex items-center justify-between text-red-400"
+            onclick={() => {
+              showFileMenu = false;
+              if (confirm("Clear all breakers, equipment, and wires on the canvas?")) {
+                panelStore.clearProject();
+              }
+            }}
+          >
+            <span class="flex items-center gap-2.5">
+              <Trash2 class="w-4 h-4" />
+              <span>Clear Canvas</span>
+            </span>
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Inline Project Title Input -->
+    <input
+      type="text"
+      bind:value={panelStore.projectTitle}
+      oninput={() => panelStore.saveToLocalStorage()}
+      placeholder="Project Title..."
+      title="Project Title (Click to rename)"
+      class="bg-slate-950/90 hover:bg-slate-950 focus:bg-slate-950 text-xs font-semibold text-slate-200 border border-slate-800 focus:border-blue-500 rounded-lg px-2.5 py-1.5 outline-none w-40 truncate transition"
+    />
+
+    <!-- Breaker Panel Switcher & + Add Panel -->
+    <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+      <select
+        value={panelStore.activePanelId}
+        onchange={(e) => {
+          const id = (e.target as HTMLSelectElement).value;
+          panelStore.setActivePanel(id);
+          panelStore.select("panel", id);
+        }}
+        class="bg-slate-900 text-xs font-bold text-blue-400 border border-slate-700 rounded-lg px-2 py-1 outline-none hover:border-blue-500 transition max-w-40 truncate"
+        title="Switch Active Breaker Panel"
+      >
+        {#each panelStore.panels as p}
+          <option value={p.id}>⚡ {p.name}</option>
+        {/each}
+      </select>
+      <button
+        class="px-2 py-1 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition flex items-center gap-1"
+        onclick={() => panelStore.addPanel()}
+        title="Add another Breaker Panel to the canvas"
+      >
+        <Plus class="w-3 h-3 text-blue-400" />
+        <span>Panel</span>
+      </button>
     </div>
   </div>
 
@@ -352,7 +429,7 @@
     </button>
   </div>
 
-  <!-- Right: Actions, DRC, BOM & Exports -->
+  <!-- Right: Actions, DRC, BOM, Share & Inspector Toggle -->
   <div class="flex items-center gap-2 flex-shrink-0">
     <!-- Active Wire Settings -->
     <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
@@ -453,16 +530,6 @@
       <span>BOM</span>
     </button>
 
-    <!-- Print Label Strips Button -->
-    <button
-      class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition"
-      onclick={onOpenLabels}
-      title="Generate 18mm Faceplate Label Stickers"
-    >
-      <Printer class="w-3.5 h-3.5 text-blue-400" />
-      <span>Labels</span>
-    </button>
-
     <!-- Export Diagram as PNG Button -->
     <button
       class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition"
@@ -473,59 +540,45 @@
       <span>PNG</span>
     </button>
 
-    <!-- Export JSON / Import / Clear -->
-    <div class="flex items-center gap-1">
-      <button
-        class="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
-        onclick={handleExportJSON}
-        title="Export Project File (.json)"
-      >
-        <Download class="w-3.5 h-3.5" />
-      </button>
-
-      <label
-        class="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition cursor-pointer"
-        title="Import Project (.json)"
-      >
-        <Upload class="w-3.5 h-3.5" />
-        <input
-          type="file"
-          accept=".json"
-          bind:this={fileInput}
-          onchange={handleFileImport}
-          class="hidden"
-        />
-      </label>
-
-      <button
-        class="p-1.5 text-slate-400 hover:text-red-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
-        onclick={() => {
-          if (confirm("Clear all breakers, equipment, and wires in this project?")) {
-            panelStore.clearProject();
-          }
-        }}
-        title="Clear Canvas"
-      >
-        <Trash2 class="w-3.5 h-3.5" />
-      </button>
-
-      {#if onToggleRightSidebar}
-        <button
-          type="button"
-          class="p-1.5 rounded-lg border transition flex items-center justify-center ml-1 {isRightSidebarOpen
-            ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
-            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'}"
-          onclick={onToggleRightSidebar}
-          title="{isRightSidebarOpen ? 'Hide' : 'Show'} Right Inspector Panel (])"
-        >
-          {#if isRightSidebarOpen}
-            <PanelRightClose class="w-4 h-4" />
-          {:else}
-            <PanelRightOpen class="w-4 h-4" />
-          {/if}
-        </button>
+    <!-- Quick Save Button -->
+    <button
+      class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition"
+      onclick={onQuickSave}
+      title="Save Plan (Ctrl+S)"
+    >
+      <Save class="w-3.5 h-3.5 text-blue-400" />
+      <span>{panelStore.isSavingCloud ? "Saving..." : "Save"}</span>
+      {#if panelStore.cloudPlanId && panelStore.cloudDirty}
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400" title="Unsaved cloud changes"></span>
       {/if}
-    </div>
+    </button>
+
+    <!-- Share Plan Button (Cloudflare R2 /plan/<id>) -->
+    <button
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-lg shadow-emerald-600/20"
+      onclick={() => onOpenFileModal("share")}
+      title="Share Plan via /plan/<id> Link"
+    >
+      <Share2 class="w-3.5 h-3.5" />
+      <span>Share</span>
+    </button>
+
+    {#if onToggleRightSidebar}
+      <button
+        type="button"
+        class="p-1.5 rounded-lg border transition flex items-center justify-center {isRightSidebarOpen
+          ? 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'
+          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'}"
+        onclick={onToggleRightSidebar}
+        title="{isRightSidebarOpen ? 'Hide' : 'Show'} Right Inspector Panel (])"
+      >
+        {#if isRightSidebarOpen}
+          <PanelRightClose class="w-4 h-4" />
+        {:else}
+          <PanelRightOpen class="w-4 h-4" />
+        {/if}
+      </button>
+    {/if}
   </div>
 </header>
 

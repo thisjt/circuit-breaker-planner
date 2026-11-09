@@ -27,6 +27,14 @@ export interface HistoryState {
 }
 
 export class PanelState {
+  // Document & Cloud Metadata
+  projectTitle = $state<string>('Residential Distribution Plan');
+  projectAuthor = $state<string>('');
+  cloudPlanId = $state<string | null>(null);
+  lastSavedAt = $state<string | null>(null);
+  isSavingCloud = $state<boolean>(false);
+  cloudDirty = $state<boolean>(false);
+
   // Multiple Breaker Panels
   panels = $state<PanelConfig[]>([
     {
@@ -154,10 +162,17 @@ export class PanelState {
     this.saveToLocalStorage();
   }
 
-  saveToLocalStorage() {
+  saveToLocalStorage(markDirty = true) {
     if (typeof window === 'undefined') return;
+    if (markDirty && this.cloudPlanId) {
+      this.cloudDirty = true;
+    }
     try {
       const data = {
+        projectTitle: this.projectTitle,
+        projectAuthor: this.projectAuthor,
+        cloudPlanId: this.cloudPlanId,
+        lastSavedAt: this.lastSavedAt,
         panels: this.panels,
         activePanelId: this.activePanelId,
         config: this.activePanel, // legacy fallback
@@ -179,6 +194,19 @@ export class PanelState {
       const stored = localStorage.getItem('circuit_breaker_planner_data');
       if (stored) {
         const parsed = JSON.parse(stored);
+
+        if (typeof parsed.projectTitle === 'string' && parsed.projectTitle.trim()) {
+          this.projectTitle = parsed.projectTitle;
+        }
+        if (typeof parsed.projectAuthor === 'string') {
+          this.projectAuthor = parsed.projectAuthor;
+        }
+        if (typeof parsed.cloudPlanId === 'string') {
+          this.cloudPlanId = parsed.cloudPlanId;
+        }
+        if (typeof parsed.lastSavedAt === 'string') {
+          this.lastSavedAt = parsed.lastSavedAt;
+        }
 
         // Restore Panels
         if (Array.isArray(parsed.panels) && parsed.panels.length > 0) {
@@ -1317,6 +1345,129 @@ export class PanelState {
     this.saveToLocalStorage();
   }
 
+  newProject(mode: 'blank' | 'template' = 'blank', title = 'Untitled Electrical Plan', author?: string) {
+    this.saveHistory();
+    this.cloudPlanId = null;
+    this.lastSavedAt = null;
+    this.cloudDirty = false;
+    this.projectTitle = title.trim() || 'Untitled Electrical Plan';
+    if (author !== undefined) {
+      this.projectAuthor = author.trim();
+    }
+
+    if (mode === 'template') {
+      this.loadSampleProject();
+    } else {
+      this.panels = [
+        {
+          id: 'panel-1',
+          name: 'Main Distribution Panel',
+          x: 60,
+          y: 120,
+          rows: 2,
+          slotsPerRow: 12,
+          railSpacing: 230,
+          wireStandard: 'PEC',
+          hasGroundBar: true,
+          hasNeutralBar: true,
+          groundBarSlots: 12,
+          neutralBarSlots: 12
+        }
+      ];
+      this.activePanelId = 'panel-1';
+      this.devices = [];
+      this.wires = [];
+      this.busbars = [];
+      this.equipment = [];
+      this.clearSelection();
+      this.saveToLocalStorage(false);
+    }
+
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
+  }
+
+  async saveToCloud(asNewCopy = false): Promise<{
+    id: string;
+    url: string;
+    title: string;
+    updatedAt: string;
+  }> {
+    this.isSavingCloud = true;
+    try {
+      const payload = {
+        version: '2.0.0',
+        projectTitle: this.projectTitle,
+        projectAuthor: this.projectAuthor,
+        panels: this.panels,
+        activePanelId: this.activePanelId,
+        config: this.activePanel,
+        devices: this.devices,
+        wires: this.wires,
+        busbars: this.busbars,
+        equipment: this.equipment
+      };
+
+      const targetId = !asNewCopy && this.cloudPlanId ? this.cloudPlanId : null;
+      const endpoint = targetId ? `/api/plans/${encodeURIComponent(targetId)}` : '/api/plans';
+      const method = targetId ? 'PUT' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errBody = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(errBody.message || `Cloud save failed (${res.status})`);
+      }
+
+      const result = (await res.json()) as {
+        id: string;
+        url: string;
+        title: string;
+        updatedAt: string;
+      };
+      this.cloudPlanId = result.id;
+      this.lastSavedAt = result.updatedAt;
+      this.cloudDirty = false;
+      this.saveToLocalStorage(false);
+
+      if (typeof window !== 'undefined') {
+        const nextPath = `/plan/${result.id}`;
+        if (window.location.pathname !== nextPath) {
+          window.history.replaceState({}, '', nextPath);
+        }
+      }
+
+      return result;
+    } finally {
+      this.isSavingCloud = false;
+    }
+  }
+
+  loadFromCloudData(data: any, id: string, title?: string, author?: string, updatedAt?: string): boolean {
+    const ok = this.importJSON(typeof data === 'string' ? data : JSON.stringify(data));
+    if (ok) {
+      this.cloudPlanId = id;
+      if (title) this.projectTitle = title;
+      if (author !== undefined) this.projectAuthor = author;
+      if (updatedAt) this.lastSavedAt = updatedAt;
+      this.cloudDirty = false;
+      this.saveToLocalStorage(false);
+
+      if (typeof window !== 'undefined') {
+        const nextPath = `/plan/${id}`;
+        if (window.location.pathname !== nextPath) {
+          window.history.replaceState({}, '', nextPath);
+        }
+      }
+    }
+    return ok;
+  }
+
   loadSampleProject() {
     this.panels = [
       {
@@ -1480,6 +1631,10 @@ export class PanelState {
       {
         version: '2.0.0',
         exportedAt: new Date().toISOString(),
+        projectTitle: this.projectTitle,
+        projectAuthor: this.projectAuthor,
+        cloudPlanId: this.cloudPlanId,
+        lastSavedAt: this.lastSavedAt,
         panels: this.panels,
         activePanelId: this.activePanelId,
         config: this.activePanel,
@@ -1499,6 +1654,22 @@ export class PanelState {
       if (!data) return false;
 
       this.saveHistory();
+
+      if (typeof data.projectTitle === 'string' && data.projectTitle.trim()) {
+        this.projectTitle = data.projectTitle;
+      } else if (data.config?.name) {
+        this.projectTitle = data.config.name;
+      }
+      if (typeof data.projectAuthor === 'string') {
+        this.projectAuthor = data.projectAuthor;
+      }
+      this.cloudPlanId = typeof data.cloudPlanId === 'string' ? data.cloudPlanId : null;
+      this.lastSavedAt = typeof data.updatedAt === 'string'
+        ? data.updatedAt
+        : typeof data.lastSavedAt === 'string'
+          ? data.lastSavedAt
+          : null;
+      this.cloudDirty = false;
 
       if (Array.isArray(data.panels) && data.panels.length > 0) {
         this.panels = data.panels;

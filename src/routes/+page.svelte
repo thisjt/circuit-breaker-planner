@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import Toolbar from '#lib/components/Toolbar.svelte';
   import SidebarCatalog from '#lib/components/SidebarCatalog.svelte';
   import Canvas from '#lib/components/Canvas.svelte';
@@ -6,13 +7,23 @@
   import BomModal from '#lib/components/BomModal.svelte';
   import LabelStripModal from '#lib/components/LabelStripModal.svelte';
   import DrcModal from '#lib/components/DrcModal.svelte';
+  import FileModals, { type FileModalMode } from '#lib/components/FileModals.svelte';
+  import PrintDiagramModal from '#lib/components/PrintDiagramModal.svelte';
+  import { getSerializedDiagramSvg } from '#lib/svgExport';
   import { panelStore } from '#lib/state.svelte';
   import {
     PanelLeftOpen,
     PanelRightOpen,
     ChevronRight,
     ChevronLeft,
+    CheckCircle2
   } from '@lucide/svelte';
+
+  interface Props {
+    initialPlanId?: string | null;
+  }
+
+  let { initialPlanId = null }: Props = $props();
 
   const SIDEBAR_STORAGE_KEY = 'cb_planner_ui_sidebars_v1';
 
@@ -38,8 +49,35 @@
   let isBOMOpen = $state(false);
   let isLabelsOpen = $state(false);
   let isDRCOpen = $state(false);
+  let isPrintDiagramOpen = $state(false);
+  let fileModalMode = $state<FileModalMode>(null);
+  let incomingPlanId = $state<string | null>(null);
+  let toastMessage = $state<string | null>(null);
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
   let isLeftSidebarOpen = $state(initialSidebars.left);
   let isRightSidebarOpen = $state(initialSidebars.right);
+
+  function showToast(msg: string) {
+    toastMessage = msg;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastMessage = null;
+    }, 3200);
+  }
+
+  onMount(() => {
+    const routePlanId =
+      initialPlanId ||
+      (window.location.pathname.startsWith('/plan/')
+        ? window.location.pathname.replace(/^\/plan\//, '').split('/')[0]
+        : null);
+
+    if (routePlanId) {
+      incomingPlanId = routePlanId;
+      fileModalMode = 'incoming_shared';
+    }
+  });
 
   function saveSidebarPrefs() {
     if (typeof window === 'undefined') return;
@@ -63,12 +101,55 @@
     saveSidebarPrefs();
   }
 
+  async function handleQuickSave() {
+    panelStore.saveToLocalStorage(false);
+    if (panelStore.cloudPlanId) {
+      try {
+        const res = await panelStore.saveToCloud(false);
+        showToast(`Saved to cloud (/plan/${res.id})`);
+      } catch {
+        fileModalMode = 'save_as';
+      }
+    } else {
+      fileModalMode = 'save_as';
+    }
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
     const isEditingText =
       target.tagName === 'INPUT' ||
       target.tagName === 'TEXTAREA' ||
       target.tagName === 'SELECT';
+
+    // File Menu Shortcuts (work even if focus is in an input when Ctrl/Cmd is held)
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === 's') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          fileModalMode = 'save_as';
+        } else {
+          handleQuickSave();
+        }
+        return;
+      }
+      if (key === 'o') {
+        e.preventDefault();
+        fileModalMode = 'open';
+        return;
+      }
+      if (key === 'p') {
+        e.preventDefault();
+        isPrintDiagramOpen = true;
+        return;
+      }
+      if (key === 'n' && !isEditingText) {
+        e.preventDefault();
+        fileModalMode = 'new';
+        return;
+      }
+    }
 
     if (isEditingText) return;
 
@@ -122,7 +203,11 @@
 
     // Escape
     if (e.key === 'Escape') {
-      if (panelStore.wireDraft) {
+      if (fileModalMode) {
+        fileModalMode = null;
+      } else if (isPrintDiagramOpen) {
+        isPrintDiagramOpen = false;
+      } else if (panelStore.wireDraft) {
         panelStore.cancelWireDraft();
       } else {
         panelStore.clearSelection();
@@ -134,7 +219,7 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <svelte:head>
-  <title>Circuit Breaker & Panel Wire Planner</title>
+  <title>{panelStore.projectTitle ? `${panelStore.projectTitle} — Circuit Breaker Planner` : 'Circuit Breaker & Panel Wire Planner'}</title>
 </svelte:head>
 
 <div class="h-screen w-screen flex flex-col overflow-hidden bg-slate-950 font-sans">
@@ -143,6 +228,9 @@
     onOpenBOM={() => (isBOMOpen = true)}
     onOpenLabels={() => (isLabelsOpen = true)}
     onOpenDRC={() => (isDRCOpen = true)}
+    onOpenFileModal={(m) => (fileModalMode = m)}
+    onOpenPrintDiagram={() => (isPrintDiagramOpen = true)}
+    onQuickSave={handleQuickSave}
     {isLeftSidebarOpen}
     {isRightSidebarOpen}
     onToggleLeftSidebar={toggleLeftSidebar}
@@ -187,6 +275,16 @@
           <PanelRightOpen class="w-4 h-4 text-blue-400" />
         </button>
       {/if}
+
+      <!-- Floating Toast Notification -->
+      {#if toastMessage}
+        <div
+          class="absolute bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/95 border border-emerald-500/60 text-slate-100 text-xs font-semibold shadow-2xl"
+        >
+          <CheckCircle2 class="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      {/if}
     </main>
 
     <!-- Right Properties & Inspector Panel -->
@@ -199,4 +297,15 @@
   <BomModal isOpen={isBOMOpen} onClose={() => (isBOMOpen = false)} />
   <LabelStripModal isOpen={isLabelsOpen} onClose={() => (isLabelsOpen = false)} />
   <DrcModal isOpen={isDRCOpen} onClose={() => (isDRCOpen = false)} />
+  <FileModals
+    mode={fileModalMode}
+    {incomingPlanId}
+    onClose={() => (fileModalMode = null)}
+    onNotify={showToast}
+  />
+  <PrintDiagramModal
+    isOpen={isPrintDiagramOpen}
+    onClose={() => (isPrintDiagramOpen = false)}
+    {getSerializedDiagramSvg}
+  />
 </div>

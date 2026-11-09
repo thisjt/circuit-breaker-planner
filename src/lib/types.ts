@@ -186,3 +186,15 @@ export interface DRCWarning {
   relatedWireIds?: string[];
 }
 
+export interface CloudPlanSummary {
+  id: string;
+  title: string;
+  author: string;
+  panelCount: number;
+  deviceCount: number;
+  wireCount: number;
+  updatedAt: string;
+  sizeBytes?: number;
+}
+
+
