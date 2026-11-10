@@ -27,6 +27,9 @@
     onEquipmentTerminalMouseDown,
     onTerminalMouseUp,
   }: Props = $props();
+
+  const isTop = $derived((eq.terminalPosition || "top") !== "bottom");
+  const termY = $derived(isTop ? 16 : h - 16);
 </script>
 
 <!-- SOLAR PANEL (Photovoltaic Monocrystalline Module) -->
@@ -53,26 +56,69 @@
   {/each}
 </g>
 <!-- Badge pill -->
-<rect x={w / 2 - 38} y="8" width="76" height="13" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="0.8" />
-<text x={w / 2} y="17.5" font-size="7" font-weight="900" fill="#b45309" text-anchor="middle" font-family="monospace">
+<rect
+  x={w / 2 - 38}
+  y={isTop ? 8 : 10}
+  width="76"
+  height="13"
+  rx="3"
+  fill="#fef3c7"
+  stroke="#f59e0b"
+  stroke-width="0.8"
+/>
+<text
+  x={w / 2}
+  y={isTop ? 17.5 : 19.5}
+  font-size="7"
+  font-weight="900"
+  fill="#b45309"
+  text-anchor="middle"
+  font-family="monospace"
+>
   ☀️ PV MODULE
 </text>
+
 <!-- Rated Power Display -->
-<text x={w / 2} y={h / 2 - 2} font-size="16" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="system-ui, sans-serif">
+<text
+  x={w / 2}
+  y={h / 2 - 2}
+  font-size="16"
+  font-weight="900"
+  fill="#ffffff"
+  text-anchor="middle"
+  font-family="system-ui, sans-serif"
+>
   {eq.powerWatts || 550}W
 </text>
 <!-- Specs Subtitle -->
-<text x={w / 2} y={h / 2 + 13} font-size="7" font-weight="bold" fill="#38bdf8" text-anchor="middle" font-family="monospace">
+<text
+  x={w / 2}
+  y={h / 2 + 13}
+  font-size="7"
+  font-weight="bold"
+  fill="#38bdf8"
+  text-anchor="middle"
+  font-family="monospace"
+>
   {eq.voltage || 41.5}V • {eq.current || 13.25}A
 </text>
-<text x={w / 2} y={h - 18} font-size="7.5" font-weight="bold" fill="#f8fafc" text-anchor="middle">
+
+<!-- Label / Name (Top if terminals at bottom, Bottom if terminals at top) -->
+<text
+  x={w / 2}
+  y={isTop ? h - 16 : 32}
+  font-size="7.5"
+  font-weight="bold"
+  fill="#f8fafc"
+  text-anchor="middle"
+>
   {eq.label}
 </text>
 
 <!-- TERMINAL PV+ (DC Positive - Left) -->
 <g
   class="terminal cursor-pointer group/pvpos"
-  transform="translate(30, 16)"
+  transform="translate(30, {termY})"
   onmousedown={(e) => onEquipmentTerminalMouseDown(eq.id, "PV+", "dc_pos", e)}
   onmouseup={(e) => onTerminalMouseUp(eq.id, "PV+", e)}
   onclick={(e) => e.stopPropagation()}
@@ -80,16 +126,25 @@
   tabindex="0"
 >
   <circle r="14" fill="transparent" />
-  <title>Solar PV+ Positive Terminal</title>
+  <title>Solar PV+ Positive Terminal ({isTop ? 'Top' : 'Bottom'})</title>
   <circle r="7" fill="#dc2626" stroke="#fecaca" stroke-width="1.5" class="group-hover/pvpos:scale-125" />
   <text x="0" y="2.5" text-anchor="middle" font-size="7" font-weight="900" fill="#ffffff">+</text>
-  <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#ef4444">PV+</text>
+  <text
+    x="0"
+    y={isTop ? -10 : 13}
+    text-anchor="middle"
+    font-size="6"
+    font-weight="bold"
+    fill="#ef4444"
+  >
+    PV+
+  </text>
 </g>
 
 <!-- TERMINAL PV- (DC Negative - Right) -->
 <g
   class="terminal cursor-pointer group/pvneg"
-  transform="translate({w - 30}, 16)"
+  transform="translate({w - 30}, {termY})"
   onmousedown={(e) => onEquipmentTerminalMouseDown(eq.id, "PV-", "dc_neg", e)}
   onmouseup={(e) => onTerminalMouseUp(eq.id, "PV-", e)}
   onclick={(e) => e.stopPropagation()}
@@ -97,9 +152,17 @@
   tabindex="0"
 >
   <circle r="14" fill="transparent" />
-  <title>Solar PV- Negative Terminal</title>
+  <title>Solar PV- Negative Terminal ({isTop ? 'Top' : 'Bottom'})</title>
   <circle r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5" class="group-hover/pvneg:scale-125" />
   <text x="0" y="2.5" text-anchor="middle" font-size="8" font-weight="900" fill="#ffffff">-</text>
-  <text x="0" y="-10" text-anchor="middle" font-size="6" font-weight="bold" fill="#cbd5e1">PV-</text>
+  <text
+    x="0"
+    y={isTop ? -10 : 13}
+    text-anchor="middle"
+    font-size="6"
+    font-weight="bold"
+    fill="#cbd5e1"
+  >
+    PV-
+  </text>
 </g>
-

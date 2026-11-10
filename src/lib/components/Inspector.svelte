@@ -1141,7 +1141,7 @@
         </div>
       {/if}
 
-      {#if selectedEquipment.type === 'hvac' || selectedEquipment.type === 'water_heater' || selectedEquipment.type === 'refrigerator' || selectedEquipment.type === 'ev_charger' || selectedEquipment.type === 'outlet_3gang' || selectedEquipment.type === 'field_block'}
+      {#if selectedEquipment.type === 'solar_panel' || selectedEquipment.type === 'hvac' || selectedEquipment.type === 'water_heater' || selectedEquipment.type === 'refrigerator' || selectedEquipment.type === 'ev_charger' || selectedEquipment.type === 'outlet_3gang' || selectedEquipment.type === 'field_block'}
         <div>
           <label class="block font-semibold text-slate-400 mb-1">Terminal Port Position</label>
           <div class="grid grid-cols-2 gap-1.5">
@@ -1151,7 +1151,7 @@
                 : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}"
               onclick={() => panelStore.updateEquipment(selectedEquipment.id, { terminalPosition: 'top' })}
             >
-              Top Ports
+              Top Ports (Up)
             </button>
             <button
               class="py-1.5 px-2 rounded-lg border text-xs font-semibold transition {selectedEquipment.terminalPosition === 'bottom'
@@ -1159,7 +1159,7 @@
                 : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'}"
               onclick={() => panelStore.updateEquipment(selectedEquipment.id, { terminalPosition: 'bottom' })}
             >
-              Bottom Ports
+              Bottom Ports (Down)
             </button>
           </div>
         </div>

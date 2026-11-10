@@ -95,5 +95,46 @@
     {onEquipmentTerminalMouseDown}
     {onTerminalMouseUp}
   />
+
+  {#if isSelected && (eq.type === 'solar_panel' || eq.type === 'hvac' || eq.type === 'water_heater' || eq.type === 'refrigerator' || eq.type === 'ev_charger' || eq.type === 'outlet_3gang' || eq.type === 'field_block')}
+    <!-- Quick Flip Terminal Button on Canvas -->
+    <g
+      class="cursor-pointer group/flip"
+      transform="translate({w / 2}, -10)"
+      onmousedown={(e) => e.stopPropagation()}
+      onclick={(e) => {
+        e.stopPropagation();
+        const currentPos = eq.terminalPosition || 'top';
+        panelStore.updateEquipment(eq.id, {
+          terminalPosition: currentPos === 'bottom' ? 'top' : 'bottom'
+        });
+      }}
+      role="button"
+      tabindex="0"
+    >
+      <rect
+        x="-36"
+        y="-8"
+        width="72"
+        height="16"
+        rx="8"
+        fill="#0f172a"
+        stroke="#38bdf8"
+        stroke-width="1.2"
+        class="group-hover/flip:fill-blue-600 group-hover/flip:stroke-white transition"
+      />
+      <text
+        x="0"
+        y="3"
+        font-size="7.5"
+        font-weight="bold"
+        fill="#f8fafc"
+        text-anchor="middle"
+        font-family="system-ui, sans-serif"
+      >
+        ↕ Ports: {eq.terminalPosition === 'bottom' ? 'Down' : 'Up'}
+      </text>
+    </g>
+  {/if}
 </g>
 

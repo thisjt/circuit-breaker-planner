@@ -966,27 +966,29 @@ export class PanelState {
       }
 
       case 'hybrid_inverter': {
+        // Bottom compartment - Upper tier (DC Inputs: Solar PV & Battery)
         if (terminalId === 'PV1+' || terminalId === 'PV+' || terminalId === 'DC+') {
-          return { x: eq.x + 28, y: eq.y + 16, position: 'top' };
+          return { x: eq.x + 30, y: eq.y + h - 38, position: 'bottom' };
         }
         if (terminalId === 'PV1-' || terminalId === 'PV-' || terminalId === 'DC-') {
-          return { x: eq.x + 56, y: eq.y + 16, position: 'top' };
+          return { x: eq.x + 58, y: eq.y + h - 38, position: 'bottom' };
         }
         if (terminalId === 'BAT+' || terminalId === 'B+') {
-          return { x: eq.x + w - 56, y: eq.y + 16, position: 'top' };
+          return { x: eq.x + w - 58, y: eq.y + h - 38, position: 'bottom' };
         }
         if (terminalId === 'BAT-' || terminalId === 'B-') {
-          return { x: eq.x + w - 26, y: eq.y + 16, position: 'top' };
+          return { x: eq.x + w - 30, y: eq.y + h - 38, position: 'bottom' };
         }
 
-        if (terminalId === 'AC_IN_L') return { x: eq.x + 26, y: eq.y + h - 16, position: 'bottom' };
-        if (terminalId === 'AC_IN_N') return { x: eq.x + 50, y: eq.y + h - 16, position: 'bottom' };
-        if (terminalId === 'AC_IN_PE') return { x: eq.x + 74, y: eq.y + h - 16, position: 'bottom' };
-        if (terminalId === 'AC_OUT_L') return { x: eq.x + w - 74, y: eq.y + h - 16, position: 'bottom' };
-        if (terminalId === 'AC_OUT_N') return { x: eq.x + w - 50, y: eq.y + h - 16, position: 'bottom' };
-        if (terminalId === 'AC_OUT_PE') return { x: eq.x + w - 26, y: eq.y + h - 16, position: 'bottom' };
+        // Bottom compartment - Lower tier (AC Ports: Grid In & Load Out)
+        if (terminalId === 'AC_IN_L') return { x: eq.x + 26, y: eq.y + h - 14, position: 'bottom' };
+        if (terminalId === 'AC_IN_N') return { x: eq.x + 50, y: eq.y + h - 14, position: 'bottom' };
+        if (terminalId === 'AC_IN_PE') return { x: eq.x + 74, y: eq.y + h - 14, position: 'bottom' };
+        if (terminalId === 'AC_OUT_L') return { x: eq.x + w - 74, y: eq.y + h - 14, position: 'bottom' };
+        if (terminalId === 'AC_OUT_N') return { x: eq.x + w - 50, y: eq.y + h - 14, position: 'bottom' };
+        if (terminalId === 'AC_OUT_PE') return { x: eq.x + w - 26, y: eq.y + h - 14, position: 'bottom' };
 
-        return { x: eq.x + w / 2, y: eq.y + h - 16, position: 'bottom' };
+        return { x: eq.x + w / 2, y: eq.y + h - 14, position: 'bottom' };
       }
 
       case 'offgrid_inverter': {
